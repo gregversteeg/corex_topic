@@ -130,24 +130,34 @@ sfdp tree.dot -Tpdf -Earrowhead=none -Nfontsize=12  -GK=2 -Gmaxiter=1000 -Goverl
 
 ## Technical notes
 
-For speed  Specify the strategy for handling non-binary count data. At the command line API you can choose the following. 
+For speed this version actually works only on binary data and produces binary latent factors. However, you can 
+interpret input values in the range 0 to 1 as specified a probability that a word appears in a document. Therefore,
+we have several strategies for handling text data. 
+
+At the command line API you can specify the following strategies for handling non-binary count data.
  
  0. Naive binarization. This will be good for documents of similar length and especially short documents. 
+ 
  1. Average binary bag of words. We split
                         documents into chunks, compute the binary bag of words
                         for each documents and then average. This implicitly
-                        weights all documentsequally. 
+                        weights all documents equally. 
+                        
  2. All binary bag of words. Split documents into chunks and consider each chunk as its own binary bag of words documents. 
- This changes the number of documents so it may take some work to match the ids back, if desired. 
+ This changes the number of documents so it may take some work to match the ids back, if desired. Implicitly, this
+ will weight longer documents more heavily. Generally this seems
+ like the most theoretically justified method to me. Ideally, you could aggregate the latent factors over sub-documents to
+ get 'counts' of latent factors at the higher layers. 
  
  3. Fractional counts. This converts counts into a fraction of the
-                        background rate, with 1 asthe max. Short documents
+                        background rate, with 1 as the max. Short documents
                         tend to stay binary and words in long documents are
-                        weightedaccording to their frequency with respect to
-                        background in the corpus.
+                        weighted according to their frequency with respect to
+                        background in the corpus. This seems to work Ok on tests. It requires no preprocessing of count 
+                        data and it uses the full range of possible inputs. But it's not a very rigorous approach.
                         
  For the python API, for 1 and 2, you can use the functions in vis_topic.py to process data or do the same yourself.
- 0 is specified 
+ 0 is specified through the python api with count='binarize' and 3 with count='fraction'. 
 
 
 
