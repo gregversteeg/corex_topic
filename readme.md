@@ -128,6 +128,29 @@ gts to render nicer curved lines).
 sfdp tree.dot -Tpdf -Earrowhead=none -Nfontsize=12  -GK=2 -Gmaxiter=1000 -Goverlap=False -Gpack=True -Gpackmode=clust -Gsep=0.02 -Gratio=0.7 -Gsplines=True -o nice.pdf
 ```
 
+## Technical notes
+
+For speed  Specify the strategy for handling non-binary count data. At the command line API you can choose the following. 
+ 
+ 0. Naive binarization. This will be good for documents of similar length and especially short documents. 
+ 1. Average binary bag of words. We split
+                        documents into chunks, compute the binary bag of words
+                        for each documents and then average. This implicitly
+                        weights all documentsequally. 
+ 2. All binary bag of words. Split documents into chunks and consider each chunk as its own binary bag of words documents. 
+ This changes the number of documents so it may take some work to match the ids back, if desired. 
+ 
+ 3. Fractional counts. This converts counts into a fraction of the
+                        background rate, with 1 asthe max. Short documents
+                        tend to stay binary and words in long documents are
+                        weightedaccording to their frequency with respect to
+                        background in the corpus.
+                        
+ For the python API, for 1 and 2, you can use the functions in vis_topic.py to process data or do the same yourself.
+ 0 is specified 
+
+
+
 ## Licensing
 This version is free to use for academic and non-commercial purposes. For commercial uses, this code is free to try 
 for 30 days. Please contact us for information on licensing arrangements. 

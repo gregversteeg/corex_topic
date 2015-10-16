@@ -82,14 +82,16 @@ class Corex(object):
             AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 
     """
-    def __init__(self, n_hidden=2, max_iter=100, eps=1e-5, seed=None, verbose=False, max_overlap='tree', **kwargs):
+    def __init__(self, n_hidden=2, max_iter=100, eps=1e-5, seed=None, verbose=False, count='fraction', max_overlap='tree',
+                 **kwargs):
         self.n_hidden = n_hidden  # Number of hidden factors to use (Y_1,...Y_m) in paper
         self.max_iter = max_iter  # Maximum number of updates to run, regardless of convergence
         self.eps = eps  # Change to signal convergence
         self.max_overlap = max_overlap
         np.random.seed(seed)  # Set seed for deterministic results
         self.verbose = verbose
-        self.t = 20
+        self.t = 20  # Initial softness of the soft-max function for alpha (see NIPS paper)
+        self.count = count  # Which strategy, if necessary, for binarizing count data
         if verbose > 0:
             np.set_printoptions(precision=3, suppress=True, linewidth=200)
             print 'corex, rep size:', n_hidden
@@ -195,14 +197,15 @@ class Corex(object):
         """Data can be binary or can be in the range [0,1], where that is interpreted as the probability to
         see this variable in a given sample"""
         if X.max() > 1:
-            # X = X > 0
-            X = X.astype(float)
-            bg_rate = ss.diags(float(X.sum()) / (X.sum(axis=0).A1).astype(float), 0)
-            doc_length = ss.diags(1. / X.sum(axis=1).A1.clip(1), 0)
-            # max_counts = ss.diags(1. / X.max(axis=1).A.ravel(), 0)
-            X = doc_length * X * bg_rate
-            X.data = np.clip(0.5 * X.data, 0, 1)  # np.log(X.data) / (np.log(X.data) + 1)
-            # X.data = X.data > 1
+            if self.count == 'binarize':
+                X = (X > 0)
+            elif self.count == 'fraction':
+                X = X.astype(float)
+                bg_rate = ss.diags(float(X.sum()) / (X.sum(axis=0).A1).astype(float), 0)
+                doc_length = ss.diags(1. / X.sum(axis=1).A1.clip(1), 0)
+                # max_counts = ss.diags(1. / X.max(axis=1).A.ravel(), 0)
+                X = doc_length * X * bg_rate
+                X.data = np.clip(X.data, 0, 1)  # np.log(X.data) / (np.log(X.data) + 1)
         return X
 
     def initialize_parameters(self, X):

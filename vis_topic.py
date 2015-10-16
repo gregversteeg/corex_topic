@@ -444,6 +444,19 @@ if __name__ == '__main__':
     group.add_option("-l", "--layers", dest="layers", type="string", default="2,1",
                      help="Specify number of units at each layer: 5,3,1 has "
                           "5 units at layer 1, 3 at layer 2, and 1 at layer 3")
+    group.add_option("-t", "--strategy", dest="strategy", type="int", default=0,
+                     help="Specify the strategy for handling non-binary count data.\n"
+                          "0. Naive binarization. This will be good for documents of similar length and especially"
+                          "short documents.\n"
+                          "1. Average binary bag of words. We split documents into chunks, compute the binary "
+                          "bag of words for each documents and then average. This implicitly weights all documents"
+                          "equally.\n"
+                          "2. All binary bag of words. Split documents into chunks and consider each chunk as its"
+                          "own binary bag of words documents. This changes the number of documents so it may take"
+                          "some work to match the ids back, if desired.\n"
+                          "3. Fractional counts. This converts counts into a fraction of the background rate, with 1 as"
+                          "the max. Short documents tend to stay binary and words in long documents are weighted"
+                          "according to their frequency with respect to background in the corpus.")
     group.add_option("-o", "--output",
                      action="store", dest="output", type="string", default="topic_output",
                      help="A directory to put all output files.")
@@ -453,6 +466,10 @@ if __name__ == '__main__':
     group.add_option("-v", "--verbose",
                      action="store_true", dest="verbose", default=False,
                      help="Print rich outputs while running.")
+    group.add_option("-w", "--words_per_doc",
+                     action="store", dest="words_per_doc", type="int", default=300,
+                     help="If using all_bbow or av_bbow, this specifies the number of words each "
+                          "to split documents into.")
     group.add_option("-e", "--edges",
                      action="store", dest="max_edges", type="int", default=100,
                      help="Show at most this many edges in graphs.")
@@ -484,8 +501,17 @@ if __name__ == '__main__':
                 docs.append(' '.join([w for w in re.findall(pattern, line)]))
     print 'processing file'
 
-    # X, proc = av_bbow(docs)
-    X, proc = all_bbow(docs, n=300)
+    if options.strategy == 1:
+        X, proc = av_bbow(docs, n=options.words_per_doc)
+    elif options.strategy == 2:
+        X, proc = all_bbow(docs, n=options.words_per_doc)
+    else:
+        X, proc = bow(docs)
+    if options.strategy == 3:
+        count = 'fraction'
+    else:
+        count = 'binarize'  # Strategies 1 and 2 already produce counts <= 1 and are not affected by this choice.
+
     var_order = np.argsort(-X.sum(axis=0).A1)[:options.n_words]
     X = X[:, var_order]
 
@@ -509,7 +535,7 @@ if __name__ == '__main__':
                 print "Layer ", l
             if l == 0:
                 t0 = time()
-                corexes = [ct.Corex(n_hidden=layer, verbose=verbose).fit(X)]
+                corexes = [ct.Corex(n_hidden=layer, verbose=verbose, count=count).fit(X)]
                 print 'Time for first layer: %0.2f' % (time() - t0)
             else:
                 X_prev = np.matrix(corexes[-1].labels)
