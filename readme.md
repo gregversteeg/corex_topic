@@ -49,7 +49,7 @@ python vis_topic.py tests/data/twenty.txt --n_words=2000 --layers=50,5,1 -v --ed
 ```python
 import corex_topic as ct
 import vis_topic as vt
-import scipy.sparse ass
+import scipy.sparse as ss
 
 X = np.array([[0,0,0,0,0], # A matrix with rows as samples and columns as variables.
               [0,0,0,1,1],
