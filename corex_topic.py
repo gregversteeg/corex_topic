@@ -180,13 +180,17 @@ class Corex(object):
             # TODO: update
             # Totally experimental
             n_samples = X.shape[0]
-            surprise = []
-            yj = np.argmax(self.alpha, axis=0)
-            f = lambda xi, yj: [[0, 1], [2, 3]][int(xi)][int(yj)]
-            for l in range(n_samples):
-                q = - sum(self.theta[f(X[l, i], labels[l, yj[i]]), i, yj[i]]
-                          for i in range(self.n_visible))
-                surprise.append(q)
+            alpha = np.zeros((self.n_hidden, self.n_visible))
+            for i in range(self.n_visible):
+                alpha[np.argmax(self.alpha[:, i]), i] = 1
+            log_p = np.empty((2, n_samples, self.n_hidden))
+            c0 = np.einsum('ji,ij->j', alpha, self.theta[0])
+            c1 = np.einsum('ji,ij->j', alpha, self.theta[1])  # length n_hidden
+            info0 = np.einsum('ji,ij->ij', alpha, self.theta[2] - self.theta[0])
+            info1 = np.einsum('ji,ij->ij', alpha, self.theta[3] - self.theta[1])
+            log_p[1] = c1 + X.dot(info1)  # sum_i log p(xi=xi^l|y_j=1)  # Shape is 2 by l by j
+            log_p[0] = c0 + X.dot(info0)  # sum_i log p(xi=xi^l|y_j=0)
+            surprise = [-np.sum([log_p[labels[l, j], l, j] for j in range(self.n_hidden)]) for l in range(n_samples)]
             return p_y_given_x, log_z, np.array(surprise)
         elif details:
             return p_y_given_x, log_z
@@ -224,7 +228,7 @@ class Corex(object):
             self.word_counts = self.word_counts.clip(0.01, self.n_samples - 0.01)
         self.word_freq = (self.word_counts).astype(float) / self.n_samples
         self.px_frac = (np.log1p(-self.word_freq) - np.log(self.word_freq)).reshape((-1, 1))  # nv by 1
-        self.lp0 = np.log1p(-self.word_freq).reshape((-1, 1))
+        self.lp0 = np.log1p(-self.word_freq).reshape((-1, 1))  # log p(x_i=0)
         self.h_x = binary_entropy(self.word_freq)
         if self.verbose:
             print 'word counts', self.word_counts
@@ -367,4 +371,4 @@ def log_1mp(x):
 
 
 def binary_entropy(p):
-    return np.where(p > 0, - p * np.log(p), 0)
+    return np.where(p > 0, - p * np.log2(p) - (1 - p) * np.log2(1 - p), 0)
