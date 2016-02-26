@@ -82,7 +82,7 @@ class Corex(object):
             AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 
     """
-    def __init__(self, n_hidden=2, max_iter=100, eps=1e-5, seed=None, verbose=False, count='fraction', max_overlap='tree',
+    def __init__(self, n_hidden=2, max_iter=100, eps=1e-5, seed=None, verbose=False, count='binarize', max_overlap='tree',
                  **kwargs):
         self.n_hidden = n_hidden  # Number of hidden factors to use (Y_1,...Y_m) in paper
         self.max_iter = max_iter  # Maximum number of updates to run, regardless of convergence

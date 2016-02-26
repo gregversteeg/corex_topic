@@ -3,7 +3,7 @@
 
 import os
 from shutil import copyfile
-from itertools import combinations
+import codecs
 import numpy as np
 import pylab
 import networkx as nx
@@ -44,7 +44,7 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics'):
     for j in range(corexes[0].n_hidden):
         inds = np.where(alpha[j] * mis[j] > 0)[0]
         inds = inds[np.argsort(-alpha[j, inds] * mis[j, inds])]
-        label = str(j) + ':' + ' '.join([column_label[ind] for ind in inds[:6]])
+        label = unicode(j) + u':' + u' '.join([column_label[ind] for ind in inds[:6]])
         label = textwrap.fill(label, width=25)
         l1_labels.append(label)
 
@@ -131,9 +131,9 @@ def output_groups(tcs, alpha, mis, column_label, thresh=0, prefix=''):
         inds = np.where(alpha[j] * mis[j] > thresh)[0]
         inds = inds[np.argsort(-alpha[j, inds] * mis[j, inds])]
         for ind in inds:
-            f.write(column_label[ind] + ', %0.3f, %0.3f, %0.3f\n' % (
+            f.write(column_label[ind] + u', %0.3f, %0.3f, %0.3f\n' % (
                 mis[j, ind], alpha[j, ind], mis[j, ind] * alpha[j, ind]))
-        h.write(str(j) + ':' + ','.join([column_label[ind] for ind in inds[:10]]) + '\n')
+        h.write(unicode(j) + u':' + u','.join([column_label[ind] for ind in inds[:10]]) + u'\n')
     f.close()
     h.close()
 
@@ -200,7 +200,7 @@ def entropy(xsamples):
 def safe_open(filename, mode):
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
-    return open(filename, mode)
+    return codecs.open(filename, mode, "utf-8")
 
 
 # Visualization utilities
@@ -303,7 +303,7 @@ def edge2pdf(g, filename, threshold=0, position=None, labels=None, connected=Tru
             posstring = False
         finalstring = u' [' + u','.join([ts for ts in [posstring, lstring] if ts]) + u']\n'
         #finalstring = u' ['+lstring+u']\n'
-        f.write((u'\t' + cnn(n) + finalstring).encode('utf-8'))
+        f.write(u'\t' + cnn(n) + finalstring)
     f.write("}".encode('utf-8'))
     f.close()
     if makepdf:
@@ -471,7 +471,7 @@ if __name__ == '__main__':
                      help="If using all_bbow or av_bbow, this specifies the number of words each "
                           "to split documents into.")
     group.add_option("-e", "--edges",
-                     action="store", dest="max_edges", type="int", default=100,
+                     action="store", dest="max_edges", type="int", default=1000,
                      help="Show at most this many edges in graphs.")
     group.add_option("-q", "--regraph",
                      action="store_true", dest="regraph", default=False,
