@@ -154,6 +154,8 @@ class Corex(object):
                 self.alpha = self.calculate_alpha(X, p_y_given_x, self.theta, self.log_p_y, self.tcs)
 
             p_y_given_x, log_z = self.calculate_latent(X, self.theta)
+            for j in np.where(np.mean(p_y_given_x, axis=0) > 0.5)[0]:
+                p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
 
             self.update_tc(log_z)  # Calculate TC and record history to check convergence
             self.print_verbose()
@@ -308,8 +310,6 @@ class Corex(object):
         with np.errstate(under='ignore'):
             log_z = logsumexp(log_pygx_unnorm, axis=0)  # Essential to maintain precision.
             p_norm = np.exp(log_pygx_unnorm[1] - log_z)
-        for j in np.where(np.mean(p_norm, axis=0) > 0.5)[0]:
-            p_norm[:, j] = 1 - p_norm[:, j]
         return p_norm.clip(1e-6, 1-1e-6), log_z  # ns by m
 
     def update_tc(self, log_z):
