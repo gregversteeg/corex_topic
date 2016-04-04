@@ -1,5 +1,6 @@
 """CorEx Hierarchical Topic Models
 
+Use the principle of Total Cor-relation Explanation (CorEx) to construct hierarchical topic models.
 This module is specially designed for sparse count data.
 
 Greg Ver Steeg and Aram Galstyan. "Maximally Informative
@@ -9,7 +10,7 @@ AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 Code below written by:
 Greg Ver Steeg (gregv@isi.edu), 2015.
 
-License: Apache V2 (This development version not yet released)
+License: Apache V2
 """
 
 import numpy as np  # Tested with 1.8.0
@@ -32,12 +33,15 @@ class Corex(object):
     max_iter : int, optional
         Maximum number of iterations before ending.
 
-    batch_size : int, optional
-        Number of examples per minibatch. NOT IMPLEMENTED IN THIS VERSION.
-
     verbose : int, optional
         The verbosity level. The default, zero, means silent mode. 1 outputs TC(X;Y) as you go
         2 output alpha matrix and MIs as you go.
+
+    tree : bool, default=True
+        In a tree model, each word can only appear in one topic. tree=False is not yet implemented.
+
+    count : string, {'binarize', 'fraction'}
+        Whether to treat counts (>1) by directly binarizing them, or by constructing a fractional count in [0,1].
 
     seed : integer or numpy.RandomState, optional
         A random number generator instance to define the state of the
@@ -82,15 +86,15 @@ class Corex(object):
             AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 
     """
-    def __init__(self, n_hidden=2, max_iter=100, eps=1e-5, seed=None, verbose=False, count='binarize', max_overlap='tree',
-                 **kwargs):
+    def __init__(self, n_hidden=2, max_iter=100, eps=1e-5, seed=None, verbose=False, count='binarize',
+                 tree=True, **kwargs):
         self.n_hidden = n_hidden  # Number of hidden factors to use (Y_1,...Y_m) in paper
         self.max_iter = max_iter  # Maximum number of updates to run, regardless of convergence
         self.eps = eps  # Change to signal convergence
-        self.max_overlap = max_overlap
+        self.tree = tree
         np.random.seed(seed)  # Set seed for deterministic results
         self.verbose = verbose
-        self.t = 20  # Initial softness of the soft-max function for alpha (see NIPS paper)
+        self.t = 20  # Initial softness of the soft-max function for alpha (see NIPS paper [1])
         self.count = count  # Which strategy, if necessary, for binarizing count data
         if verbose > 0:
             np.set_printoptions(precision=3, suppress=True, linewidth=200)
@@ -122,19 +126,23 @@ class Corex(object):
         """
         return np.sum(self.tcs)
 
-    def fit(self, X):
+    def fit(self, X, anchors=None):
         """Fit CorEx on the data X. See fit_transform.
         """
-        self.fit_transform(X)
+        self.fit_transform(X, anchors=anchors)
         return self
 
-    def fit_transform(self, X):
+    def fit_transform(self, X, anchors=None):
         """Fit CorEx on the data
 
         Parameters
         ----------
         X : scipy sparse CSR or a numpy matrix, shape = [n_samples, n_visible]
             Count data or some other sparse binary data.
+
+        anchors : scipy sparse CSR or a numpy matrix, shape = [n_samples, n_anchors]
+            These are anchor labels that will be associated with the corresponding latent factor.
+            The format is that np.nan means no information, otherwise the label is specified as 0/1.
 
         Returns
         -------
@@ -153,9 +161,11 @@ class Corex(object):
             if self.n_hidden > 1 and nloop > 0:  # Structure learning step
                 self.alpha = self.calculate_alpha(X, p_y_given_x, self.theta, self.log_p_y, self.tcs)
 
-            p_y_given_x, log_z = self.calculate_latent(X, self.theta)
-            for j in np.where(np.mean(p_y_given_x, axis=0) > 0.5)[0]:
-                p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
+            p_y_given_x, log_z = self.calculate_latent(X, self.theta, anchors=anchors)
+            if anchors is None:
+                for j in np.where(np.mean(p_y_given_x, axis=0) > 0.5)[0]:
+                    # Switch Y labels so that p(Y) <= 0.5 (unless anchors are present, then they set the gauge)
+                    p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
 
             self.update_tc(log_z)  # Calculate TC and record history to check convergence
             self.print_verbose()
@@ -165,7 +175,8 @@ class Corex(object):
         if self.verbose:
             print 'Overall tc:', self.tc
 
-        self.sort_and_output(X)
+        if anchors is None:
+            self.sort_and_output(X)
         return self.labels
 
 
@@ -253,28 +264,28 @@ class Corex(object):
     def calculate_alpha(self, X, p_y_given_x, theta, log_p_y, tcs):
         """A rule for non-tree CorEx structure."""
         # TODO: Could make it sparse also? Well, maybe not... at the beginning it's quite non-sparse
-        if self.max_overlap is 'tree':
+        if self.tree:
             # sa = np.sum(self.alpha, axis=0)
             tc_oom = 1. / self.n_samples
             sa = np.sum(self.alpha[tcs > tc_oom], axis=0)
             self.t = np.where(sa > 1.1, 1.3 * self.t, self.t)
-            mis = self.calculate_mis(theta, log_p_y)
+            self.mis = self.calculate_mis(theta, log_p_y)
             #tc_oom = np.median(self.h_x)  # \propto TC of a small group of corr. variables w/median entropy...
             #t = 20 + (20 * np.abs(tcs) / tc_oom).reshape((self.n_hidden, 1))  # worked well in many tests
             t = (1 + self.t * np.abs(tcs).reshape((self.n_hidden, 1)))
-            maxmis = np.max(mis, axis=0)
+            maxmis = np.max(self.mis, axis=0)
             with np.errstate(under='ignore'):
-                alphaopt = np.exp(t * (mis - maxmis) / self.h_x)
+                alphaopt = np.exp(t * (self.mis - maxmis) / self.h_x)
             return alphaopt
         else:
             # TODO: Can we make a fast non-tree version of update in the AISTATS paper?
             alpha = np.zeros((self.n_hidden, self.n_visible))
-            mis = self.calculate_mis(theta, log_p_y)
-            top_ys = np.argsort(-mis, axis=0)[:self.max_overlap]
+            self.mis = self.calculate_mis(theta, log_p_y)
+            top_ys = np.argsort(-mis, axis=0)[:self.tree]
             raise NotImplementedError
         return alpha
 
-    def calculate_latent(self, X, theta):
+    def calculate_latent(self, X, theta, anchors=None):
         """"Calculate the probability distribution for hidden factors for each sample."""
         ns, nv = X.shape
         log_pygx_unnorm = np.empty((2, ns, self.n_hidden))
@@ -284,7 +295,12 @@ class Corex(object):
         info1 = np.einsum('ji,ij->ij', self.alpha, theta[3] - theta[1] + self.px_frac)
         log_pygx_unnorm[1] = self.log_p_y + c1 + X.dot(info1)
         log_pygx_unnorm[0] = log_1mp(self.log_p_y) + c0 + X.dot(info0)
-        return self.normalize_latent(log_pygx_unnorm)
+        pygx = self.normalize_latent(log_pygx_unnorm)
+        if anchors is None:
+            return pygx
+        else:
+            # TODO: Add code here to specify anchors
+            return pygx
 
     def normalize_latent(self, log_pygx_unnorm):
         """Normalize the latent variable distribution
@@ -372,3 +388,8 @@ def log_1mp(x):
 
 def binary_entropy(p):
     return np.where(p > 0, - p * np.log2(p) - (1 - p) * np.log2(1 - p), 0)
+
+
+def make_anchors(A, k=1, positive_only=True):
+    """Helper function to construct appropriately formed anchor arrays. ."""
+    return np.zeros(1)

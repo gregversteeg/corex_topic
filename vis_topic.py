@@ -10,6 +10,13 @@ import networkx as nx
 import textwrap
 import scipy.sparse as ss
 import sklearn.feature_extraction.text as skt
+import cPickle, pickle
+import corex_topic as ct
+import sys, traceback
+from time import time
+import re
+import sklearn.feature_extraction.text as skt
+from nltk.stem.snowball import *
 pattern = '\\b[A-Za-z]+\\b'
 np.seterr(all='ignore')
 
@@ -110,7 +117,7 @@ def make_graph(weights, node_weights, column_label, max_edges=100):
 def trim(g, max_parents=False, max_children=False):
     for node in g:
         if max_parents:
-            parents = g.successors(node)
+            parents = list(g.successors(node))
             weights = [g.edge[node][parent]['weight'] for parent in parents]
             for weak_parent in np.argsort(weights)[:-max_parents]:
                 g.remove_edge(node, parents[weak_parent])
@@ -248,7 +255,7 @@ def edge2pdf(g, filename, threshold=0, position=None, labels=None, connected=Tru
     if connected:
         touching = list(set(sum([[a, b] for a, b in g.edges()], [])))
         g = nx.subgraph(g, touching)
-        print 'non-isolated nodes,edges', len(g.nodes()), len(g.edges())
+        print 'non-isolated nodes,edges', len(list(g.nodes())), len(list(g.edges()))
     f = safe_open(filename + '.dot', 'w+')
     if directed:
         f.write("strict digraph {\n".encode('utf-8'))
@@ -362,7 +369,7 @@ def shorten(s, n=12):
 
 def plot_convergence(tc_history, prefix=''):
     pylab.plot(tc_history)
-    pylab.xlabel('# iterations')
+    pylab.xlabel('number of iterations')
     filename = prefix + '/convergence.pdf'
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
@@ -419,20 +426,40 @@ def all_bbow(docs, n=100):
     return mat.asformat('csr'), proc
 
 
+def file_to_array(filename, stemming=False, strategy=2, words_per_doc=100, n_words=10000):
+    pattern = '\\b[A-Za-z]+\\b'
+    stemmer = SnowballStemmer('english')
+
+    with open(filename, 'rU') as input_file:
+        docs = []
+        for line in input_file:
+            if stemming:
+                docs.append(' '.join([stemmer.stem(w) for w in re.findall(pattern, line)]))
+            else:
+                docs.append(' '.join([w for w in re.findall(pattern, line)]))
+    print 'processing file'
+
+    if strategy == 1:
+        X, proc = av_bbow(docs, n=words_per_doc)
+    elif strategy == 2:
+        X, proc = all_bbow(docs, n=words_per_doc)
+    else:
+        X, proc = bow(docs)
+
+    var_order = np.argsort(-X.sum(axis=0).A1)[:n_words]
+    X = X[:, var_order]
+
+    #Dictionary
+    ivd = {v: k for k, v in proc.vocabulary_.items()}
+    words = [ivd[v] for v in var_order]
+    return X, words
+
 if __name__ == '__main__':
     # Command line interface
     # Sample commands:
     # python vis_topic.py tests/data/twenty.txt --n_words=2000 --layers=20,3,1 -v --edges=50 -o test_output
-    import corex_topic as ct
-    import cPickle
-    import sys, traceback
-    from time import time
     from optparse import OptionParser, OptionGroup
-    import re
-    import sklearn.feature_extraction.text as skt
-    from nltk.stem.snowball import *
-    pattern = '\\b[A-Za-z]+\\b'
-    stemmer = SnowballStemmer('english')
+
 
     parser = OptionParser(usage="usage: %prog [options] data_file.csv \n"
                                 "Assume one document on each line.")
@@ -483,63 +510,36 @@ if __name__ == '__main__':
         print "Run with '-h' option for usage help."
         sys.exit()
 
-    np.set_printoptions(precision=3, suppress=True)  # For legible output from numpy
     layers = map(int, options.layers.split(','))
     if layers[-1] != 1:
         layers.append(1)  # Last layer has one unit for convenience so that graph is fully connected.
-    verbose = options.verbose
 
     #Load data from text file
     print 'reading file'
-    filename = args[0]
-    with open(filename, 'rU') as input_file:
-        docs = []
-        for line in input_file:
-            if options.stemming:
-                docs.append(' '.join([stemmer.stem(w) for w in re.findall(pattern, line)]))
-            else:
-                docs.append(' '.join([w for w in re.findall(pattern, line)]))
-    print 'processing file'
+    X, words = file_to_array(args[0], stemming=options.stemming, strategy=options.strategy,
+                             words_per_doc=options.words_per_doc, n_words=options.n_words)
 
-    if options.strategy == 1:
-        X, proc = av_bbow(docs, n=options.words_per_doc)
-    elif options.strategy == 2:
-        X, proc = all_bbow(docs, n=options.words_per_doc)
-    else:
-        X, proc = bow(docs)
+    # Run CorEx on data
+    if options.verbose:
+        np.set_printoptions(precision=3, suppress=True)  # For legible output from numpy
+        print '\nData summary: X has %d rows and %d columns' % X.shape
+        print 'Variable names are: ' + ','.join(words)
+        print 'Getting CorEx results'
     if options.strategy == 3:
         count = 'fraction'
     else:
         count = 'binarize'  # Strategies 1 and 2 already produce counts <= 1 and are not affected by this choice.
-
-    var_order = np.argsort(-X.sum(axis=0).A1)[:options.n_words]
-    X = X[:, var_order]
-
-    #Dictionary
-    ivd = {v: k for k, v in proc.vocabulary_.items()}
-    words = [ivd[v] for v in var_order]
-    cPickle.dump(words, safe_open(options.output + '/dictionary%d.dat' % options.n_words, 'w'), protocol=-1)
-    print ','.join(words)
-
-    if verbose:
-        print '\nData summary: X has %d rows and %d columns' % X.shape
-        print 'Variable names are: ' + ','.join(words)
-
-    # Run CorEx on data
-    if verbose:
-        print 'Getting CorEx results'
-        corexes = []
     if not options.regraph:
         for l, layer in enumerate(layers):
-            if verbose:
+            if options.verbose:
                 print "Layer ", l
             if l == 0:
                 t0 = time()
-                corexes = [ct.Corex(n_hidden=layer, verbose=verbose, count=count).fit(X)]
+                corexes = [ct.Corex(n_hidden=layer, verbose=options.verbose, count=count).fit(X)]
                 print 'Time for first layer: %0.2f' % (time() - t0)
             else:
                 X_prev = np.matrix(corexes[-1].labels)
-                corexes.append(ct.Corex(n_hidden=layer, verbose=verbose).fit(X_prev))
+                corexes.append(ct.Corex(n_hidden=layer, verbose=options.verbose).fit(X_prev))
         for l, corex in enumerate(corexes):
             # The learned model can be loaded again using ct.Corex().load(filename)
             print 'TC at layer %d is: %0.3f' % (l, corex.tc)
