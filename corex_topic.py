@@ -86,7 +86,7 @@ class Corex(object):
             AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 
     """
-    def __init__(self, n_hidden=2, max_iter=100, eps=1e-5, seed=None, verbose=False, count='binarize',
+    def __init__(self, n_hidden=2, max_iter=200, eps=1e-5, seed=None, verbose=False, count='binarize',
                  tree=True, **kwargs):
         self.n_hidden = n_hidden  # Number of hidden factors to use (Y_1,...Y_m) in paper
         self.max_iter = max_iter  # Maximum number of updates to run, regardless of convergence
@@ -121,18 +121,23 @@ class Corex(object):
         return np.argmax(self.alpha, axis=0)
 
     @property
+    def sign(self):
+        """Return the direction of correlation, positive or negative, for each variable-latent factor."""
+        return np.sign(self.theta[3] - self.theta[2]).T
+
+    @property
     def tc(self):
         """The total correlation explained by all the Y's.
         """
         return np.sum(self.tcs)
 
-    def fit(self, X, anchors=None):
+    def fit(self, X, anchors=None, positive_anchors=True):
         """Fit CorEx on the data X. See fit_transform.
         """
-        self.fit_transform(X, anchors=anchors)
+        self.fit_transform(X, anchors=anchors, positive_anchors=positive_anchors)
         return self
 
-    def fit_transform(self, X, anchors=None):
+    def fit_transform(self, X, anchors=None, positive_anchors=True):
         """Fit CorEx on the data
 
         Parameters
@@ -143,6 +148,8 @@ class Corex(object):
         anchors : scipy sparse CSR or a numpy matrix, shape = [n_samples, n_anchors]
             These are anchor labels that will be associated with the corresponding latent factor.
             The format is that np.nan means no information, otherwise the label is specified as 0/1.
+
+        positive_anchors : Treat the anchors as positive labels only.
 
         Returns
         -------
@@ -155,17 +162,19 @@ class Corex(object):
         p_y_given_x = np.random.random((self.n_samples, self.n_hidden))
 
         for nloop in range(self.max_iter):
+            if nloop > 0:
+                for j in np.where(((self.alpha == 1.) * self.sign).sum(axis=1) < 0)[0]:
+                    # Switch Y labels so that p(Y) <= 0.5 (unless anchors are present, then they set the gauge)
+                    if anchors is None or j >= anchors.shape[1]:
+                        p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
             self.log_p_y = self.calculate_p_y(p_y_given_x)
             self.theta = self.calculate_theta(X, p_y_given_x, self.log_p_y)  # log p(x_i=1|y)  nv by m by k
 
             if self.n_hidden > 1 and nloop > 0:  # Structure learning step
                 self.alpha = self.calculate_alpha(X, p_y_given_x, self.theta, self.log_p_y, self.tcs)
 
-            p_y_given_x, log_z = self.calculate_latent(X, self.theta, anchors=anchors)
-            if anchors is None:
-                for j in np.where(np.mean(p_y_given_x, axis=0) > 0.5)[0]:
-                    # Switch Y labels so that p(Y) <= 0.5 (unless anchors are present, then they set the gauge)
-                    p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
+            p_y_given_x, log_z = self.calculate_latent(X, self.theta,
+                                                       anchors=anchors, positive_anchors=positive_anchors)
 
             self.update_tc(log_z)  # Calculate TC and record history to check convergence
             self.print_verbose()
@@ -177,6 +186,8 @@ class Corex(object):
 
         if anchors is None:
             self.sort_and_output(X)
+        self.p_y_given_x, self.log_z = self.calculate_latent(X, self.theta)  # Needed to output labels
+        self.mis = self.calculate_mis(self.theta, self.log_p_y)  # / self.h_x  # could normalize MIs
         return self.labels
 
 
@@ -218,8 +229,10 @@ class Corex(object):
                 X = (X > 0)
             elif self.count == 'fraction':
                 X = X.astype(float)
-                bg_rate = ss.diags(float(X.sum()) / (X.sum(axis=0).A1).astype(float), 0)
-                doc_length = ss.diags(1. / X.sum(axis=1).A1.clip(1), 0)
+                count = np.array(X.sum(axis=0), dtype=float).ravel()
+                length = np.array(X.sum(axis=1)).ravel().clip(1)
+                bg_rate = ss.diags(float(X.sum()) / count, 0)
+                doc_length = ss.diags(1. / length, 0)
                 # max_counts = ss.diags(1. / X.max(axis=1).A.ravel(), 0)
                 X = doc_length * X * bg_rate
                 X.data = np.clip(X.data, 0, 1)  # np.log(X.data) / (np.log(X.data) + 1)
@@ -235,7 +248,7 @@ class Corex(object):
             self.alpha = np.ones((self.n_hidden, self.n_visible), dtype=float)
         self.tc_history = []
         self.tcs = np.zeros(self.n_hidden)
-        self.word_counts = X.sum(axis=0).A1  # 1-d array of total word occurrences. (Probably slow for CSR)
+        self.word_counts = np.array(X.sum(axis=0)).ravel()  # 1-d array of total word occurrences. (Probably slow for CSR)
         if np.any(self.word_counts == 0) or np.any(self.word_counts == self.n_samples):
             print 'warning: Some words never appear (or always appear)'
             self.word_counts = self.word_counts.clip(0.01, self.n_samples - 0.01)
@@ -258,7 +271,7 @@ class Corex(object):
         lp_1g1 = np.log(p_dot_y) - np.log(n_samples) - log_p_y
         lp_1g0 = np.log(self.word_counts[:, np.newaxis] - p_dot_y) - np.log(n_samples) - log_1mp(self.log_p_y)
         lp_0g0 = log_1mp(lp_1g0)
-        lp_0g1 = log_1mp(lp_1g1)
+        lp_0g1 = log_1mp(lp_1g1)  # "Perfect" anchors can cause divergence here (we never see xi=0 given anchor)
         return np.array([lp_0g0, lp_0g1, lp_1g0, lp_1g1])  # 4 by nv by m
 
     def calculate_alpha(self, X, p_y_given_x, theta, log_p_y, tcs):
@@ -269,23 +282,23 @@ class Corex(object):
             tc_oom = 1. / self.n_samples
             sa = np.sum(self.alpha[tcs > tc_oom], axis=0)
             self.t = np.where(sa > 1.1, 1.3 * self.t, self.t)
-            self.mis = self.calculate_mis(theta, log_p_y)
+            mis = self.calculate_mis(theta, log_p_y)
             #tc_oom = np.median(self.h_x)  # \propto TC of a small group of corr. variables w/median entropy...
             #t = 20 + (20 * np.abs(tcs) / tc_oom).reshape((self.n_hidden, 1))  # worked well in many tests
             t = (1 + self.t * np.abs(tcs).reshape((self.n_hidden, 1)))
-            maxmis = np.max(self.mis, axis=0)
+            maxmis = np.max(mis, axis=0)
             with np.errstate(under='ignore'):
-                alphaopt = np.exp(t * (self.mis - maxmis) / self.h_x)
+                alphaopt = np.exp(t * (mis - maxmis) / self.h_x)
             return alphaopt
         else:
             # TODO: Can we make a fast non-tree version of update in the AISTATS paper?
             alpha = np.zeros((self.n_hidden, self.n_visible))
-            self.mis = self.calculate_mis(theta, log_p_y)
+            mis = self.calculate_mis(theta, log_p_y)
             top_ys = np.argsort(-mis, axis=0)[:self.tree]
             raise NotImplementedError
         return alpha
 
-    def calculate_latent(self, X, theta, anchors=None):
+    def calculate_latent(self, X, theta, anchors=None, positive_anchors=True):
         """"Calculate the probability distribution for hidden factors for each sample."""
         ns, nv = X.shape
         log_pygx_unnorm = np.empty((2, ns, self.n_hidden))
@@ -295,12 +308,21 @@ class Corex(object):
         info1 = np.einsum('ji,ij->ij', self.alpha, theta[3] - theta[1] + self.px_frac)
         log_pygx_unnorm[1] = self.log_p_y + c1 + X.dot(info1)
         log_pygx_unnorm[0] = log_1mp(self.log_p_y) + c0 + X.dot(info0)
-        pygx = self.normalize_latent(log_pygx_unnorm)
+        pygx, log_z = self.normalize_latent(log_pygx_unnorm)
         if anchors is None:
-            return pygx
+            return pygx, log_z
         else:
-            # TODO: Add code here to specify anchors
-            return pygx
+            n_a = anchors.shape[1]
+            assert n_a < self.n_hidden, "Number of anchors needs to be less than or equal to number of latent factors."
+            if positive_anchors:
+                pygx[np.nonzero(anchors)] = 0.9999
+                log_z[np.nonzero(anchors)] = 0
+            else:
+                if ss.issparse(anchors):
+                    anchors = anchors.todense()
+                pygx[:, :n_a] = 0.0001 + 0.9998 * anchors
+                log_z[:, :n_a] = 0
+            return pygx, log_z
 
     def normalize_latent(self, log_pygx_unnorm):
         """Normalize the latent variable distribution
@@ -338,8 +360,6 @@ class Corex(object):
         if self.verbose > 1:
             print self.alpha[:, :, 0]
             print self.theta
-            if hasattr(self, "mis"):
-                print self.mis
 
     def convergence(self):
         if len(self.tc_history) > 10:
@@ -372,8 +392,6 @@ class Corex(object):
         self.alpha = self.alpha[order]  # Connections between X_i and Y_j
         self.log_p_y = self.log_p_y[order]  # Parameters defining the representation
         self.theta = self.theta[:, :, order]  # Parameters defining the representation
-        self.p_y_given_x, self.log_z = self.calculate_latent(X, self.theta)
-        self.mis = self.calculate_mis(self.theta, self.log_p_y)  # / self.h_x  # could normalize MIs
 
     def calculate_mis(self, theta, log_p_y):
         """Return MI in nats, size n_hidden by n_variables"""
@@ -390,6 +408,8 @@ def binary_entropy(p):
     return np.where(p > 0, - p * np.log2(p) - (1 - p) * np.log2(1 - p), 0)
 
 
-def make_anchors(A, k=1, positive_only=True):
-    """Helper function to construct appropriately formed anchor arrays. ."""
-    return np.zeros(1)
+def multiply_anchors(A, k=2):
+    """Produce k latent factors per anchor. This only makes sense in conjunction with positive_only option for fit."""
+    if ss.issparse(A):
+        A = A.todense()
+    return np.repeat(A, k, axis=1)

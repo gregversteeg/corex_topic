@@ -31,7 +31,7 @@ def vis_rep(corex, row_label=None, column_label=None, prefix='topics'):
     alpha = corex.alpha
 
     print 'Print topics in text file'
-    output_groups(corex.tcs, alpha, corex.mis, column_label, prefix=prefix)
+    output_groups(corex.tcs, alpha, corex.mis, column_label, corex.sign, prefix=prefix)
     output_labels(corex.labels, row_label, prefix=prefix)
     output_cont_labels(corex.p_y_given_x, row_label, prefix=prefix)
     output_strong(corex.tcs, alpha, corex.mis, corex.labels, prefix=prefix)
@@ -39,7 +39,7 @@ def vis_rep(corex, row_label=None, column_label=None, prefix='topics'):
     plot_convergence(corex.tc_history, prefix=prefix)
 
 
-def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics'):
+def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_anchors=0):
     """Visualize a hierarchy of representations."""
     if column_label is None:
         column_label = map(str, range(corexes[0].alpha.shape[1]))
@@ -48,10 +48,13 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics'):
     alpha = corexes[0].alpha
     mis = corexes[0].mis
     l1_labels = []
+    annotate = lambda q, s: q if s > 0 else '~' + q
     for j in range(corexes[0].n_hidden):
-        inds = np.where(alpha[j] * mis[j] > 0)[0]
+        # inds = np.where(alpha[j] * mis[j] > 0)[0]
+        inds = np.where(alpha[j] == 1.)[0]
         inds = inds[np.argsort(-alpha[j, inds] * mis[j, inds])]
-        label = unicode(j) + u':' + u' '.join([column_label[ind] for ind in inds[:6]])
+        group_number = u"red_" + unicode(j) if j < n_anchors else unicode(j)
+        label = group_number + u':' + u' '.join([annotate(column_label[ind], corexes[0].sign[j,ind]) for ind in inds[:6]])
         label = textwrap.fill(label, width=25)
         l1_labels.append(label)
 
@@ -129,18 +132,20 @@ def trim(g, max_parents=False, max_children=False):
     return g
 
 
-def output_groups(tcs, alpha, mis, column_label, thresh=0, prefix=''):
+def output_groups(tcs, alpha, mis, column_label, direction, thresh=0, prefix=''):
     f = safe_open(prefix + '/groups.txt', 'w+')
     h = safe_open(prefix + '/topics.txt', 'w+')
     m, nv = mis.shape
+    annotate = lambda q, s: q if s >= 0 else '~' + q
     for j in range(m):
         f.write('Group num: %d, TC(X;Y_j): %0.3f\n' % (j, tcs[j]))
-        inds = np.where(alpha[j] * mis[j] > thresh)[0]
+        # inds = np.where(alpha[j] * mis[j] > thresh)[0]
+        inds = np.where(alpha[j] == 1.)[0]
         inds = inds[np.argsort(-alpha[j, inds] * mis[j, inds])]
         for ind in inds:
             f.write(column_label[ind] + u', %0.3f, %0.3f, %0.3f\n' % (
                 mis[j, ind], alpha[j, ind], mis[j, ind] * alpha[j, ind]))
-        h.write(unicode(j) + u':' + u','.join([column_label[ind] for ind in inds[:10]]) + u'\n')
+        h.write(unicode(j) + u':' + u','.join([annotate(column_label[ind], direction[j,ind]) for ind in inds[:10]]) + u'\n')
     f.close()
     h.close()
 
@@ -518,6 +523,7 @@ if __name__ == '__main__':
     print 'reading file'
     X, words = file_to_array(args[0], stemming=options.stemming, strategy=options.strategy,
                              words_per_doc=options.words_per_doc, n_words=options.n_words)
+    # cPickle.dump(words, open(options.prefix + '/dictionary.dat', 'w'))  # TODO: output dictionary
 
     # Run CorEx on data
     if options.verbose:
