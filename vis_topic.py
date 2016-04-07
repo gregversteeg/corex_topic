@@ -51,7 +51,7 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_
     annotate = lambda q, s: q if s > 0 else '~' + q
     for j in range(corexes[0].n_hidden):
         # inds = np.where(alpha[j] * mis[j] > 0)[0]
-        inds = np.where(alpha[j] == 1.)[0]
+        inds = np.where(alpha[j] >= 1.)[0]
         inds = inds[np.argsort(-alpha[j, inds] * mis[j, inds])]
         group_number = u"red_" + unicode(j) if j < n_anchors else unicode(j)
         label = group_number + u':' + u' '.join([annotate(column_label[ind], corexes[0].sign[j,ind]) for ind in inds[:6]])
@@ -140,7 +140,7 @@ def output_groups(tcs, alpha, mis, column_label, direction, thresh=0, prefix='')
     for j in range(m):
         f.write('Group num: %d, TC(X;Y_j): %0.3f\n' % (j, tcs[j]))
         # inds = np.where(alpha[j] * mis[j] > thresh)[0]
-        inds = np.where(alpha[j] == 1.)[0]
+        inds = np.where(alpha[j] >= 1.)[0]
         inds = inds[np.argsort(-alpha[j, inds] * mis[j, inds])]
         for ind in inds:
             f.write(column_label[ind] + u', %0.3f, %0.3f, %0.3f\n' % (

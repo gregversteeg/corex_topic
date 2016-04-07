@@ -131,13 +131,13 @@ class Corex(object):
         """
         return np.sum(self.tcs)
 
-    def fit(self, X, anchors=None, positive_anchors=True):
+    def fit(self, X, anchors=None, anchor_strength=1):
         """Fit CorEx on the data X. See fit_transform.
         """
-        self.fit_transform(X, anchors=anchors, positive_anchors=positive_anchors)
+        self.fit_transform(X, anchors=anchors, anchor_strength=anchor_strength)
         return self
 
-    def fit_transform(self, X, anchors=None, positive_anchors=True):
+    def fit_transform(self, X, anchors=None, anchor_strength=1):
         """Fit CorEx on the data
 
         Parameters
@@ -145,11 +145,9 @@ class Corex(object):
         X : scipy sparse CSR or a numpy matrix, shape = [n_samples, n_visible]
             Count data or some other sparse binary data.
 
-        anchors : scipy sparse CSR or a numpy matrix, shape = [n_samples, n_anchors]
-            These are anchor labels that will be associated with the corresponding latent factor.
-            The format is that np.nan means no information, otherwise the label is specified as 0/1.
+        anchors : A list of variables anchor each corresponding latent factor to.
 
-        positive_anchors : Treat the anchors as positive labels only.
+        anchor_strength : How strongly to weight the anchors.
 
         Returns
         -------
@@ -163,18 +161,21 @@ class Corex(object):
 
         for nloop in range(self.max_iter):
             if nloop > 0:
-                for j in np.where(((self.alpha == 1.) * self.sign).sum(axis=1) < 0)[0]:
-                    # Switch Y labels so that p(Y) <= 0.5 (unless anchors are present, then they set the gauge)
-                    if anchors is None or j >= anchors.shape[1]:
-                        p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
+                for j in np.where(((self.alpha >= 1.) * self.sign).sum(axis=1) < 0)[0]:
+                    # Switch Y labels so that p(Y) <= 0.5
+                    p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
             self.log_p_y = self.calculate_p_y(p_y_given_x)
             self.theta = self.calculate_theta(X, p_y_given_x, self.log_p_y)  # log p(x_i=1|y)  nv by m by k
 
             if self.n_hidden > 1 and nloop > 0:  # Structure learning step
                 self.alpha = self.calculate_alpha(X, p_y_given_x, self.theta, self.log_p_y, self.tcs)
+            if anchors is not None:
+                for a in set(anchors):
+                    self.alpha[:, a] = 0
+                for ia, a in enumerate(anchors):
+                    self.alpha[ia, a] = anchor_strength
 
-            p_y_given_x, log_z = self.calculate_latent(X, self.theta,
-                                                       anchors=anchors, positive_anchors=positive_anchors)
+            p_y_given_x, log_z = self.calculate_latent(X, self.theta)
 
             self.update_tc(log_z)  # Calculate TC and record history to check convergence
             self.print_verbose()
@@ -271,7 +272,7 @@ class Corex(object):
         lp_1g1 = np.log(p_dot_y) - np.log(n_samples) - log_p_y
         lp_1g0 = np.log(self.word_counts[:, np.newaxis] - p_dot_y) - np.log(n_samples) - log_1mp(self.log_p_y)
         lp_0g0 = log_1mp(lp_1g0)
-        lp_0g1 = log_1mp(lp_1g1)  # "Perfect" anchors can cause divergence here (we never see xi=0 given anchor)
+        lp_0g1 = log_1mp(lp_1g1)
         return np.array([lp_0g0, lp_0g1, lp_1g0, lp_1g1])  # 4 by nv by m
 
     def calculate_alpha(self, X, p_y_given_x, theta, log_p_y, tcs):
@@ -298,7 +299,7 @@ class Corex(object):
             raise NotImplementedError
         return alpha
 
-    def calculate_latent(self, X, theta, anchors=None, positive_anchors=True):
+    def calculate_latent(self, X, theta):
         """"Calculate the probability distribution for hidden factors for each sample."""
         ns, nv = X.shape
         log_pygx_unnorm = np.empty((2, ns, self.n_hidden))
@@ -309,20 +310,7 @@ class Corex(object):
         log_pygx_unnorm[1] = self.log_p_y + c1 + X.dot(info1)
         log_pygx_unnorm[0] = log_1mp(self.log_p_y) + c0 + X.dot(info0)
         pygx, log_z = self.normalize_latent(log_pygx_unnorm)
-        if anchors is None:
-            return pygx, log_z
-        else:
-            n_a = anchors.shape[1]
-            assert n_a < self.n_hidden, "Number of anchors needs to be less than or equal to number of latent factors."
-            if positive_anchors:
-                pygx[np.nonzero(anchors)] = 0.9999
-                log_z[np.nonzero(anchors)] = 0
-            else:
-                if ss.issparse(anchors):
-                    anchors = anchors.todense()
-                pygx[:, :n_a] = 0.0001 + 0.9998 * anchors
-                log_z[:, :n_a] = 0
-            return pygx, log_z
+        return pygx, log_z
 
     def normalize_latent(self, log_pygx_unnorm):
         """Normalize the latent variable distribution
@@ -406,10 +394,3 @@ def log_1mp(x):
 
 def binary_entropy(p):
     return np.where(p > 0, - p * np.log2(p) - (1 - p) * np.log2(1 - p), 0)
-
-
-def multiply_anchors(A, k=2):
-    """Produce k latent factors per anchor. This only makes sense in conjunction with positive_only option for fit."""
-    if ss.issparse(A):
-        A = A.todense()
-    return np.repeat(A, k, axis=1)
