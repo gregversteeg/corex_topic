@@ -170,7 +170,7 @@ class Corex(object):
             if self.n_hidden > 1 and nloop > 0:  # Structure learning step
                 self.alpha = self.calculate_alpha(X, p_y_given_x, self.theta, self.log_p_y, self.tcs)
             if anchors is not None:
-                for a in set(anchors):
+                for a in flatten(anchors):
                     self.alpha[:, a] = 0
                 for ia, a in enumerate(anchors):
                     self.alpha[ia, a] = anchor_strength
@@ -394,3 +394,13 @@ def log_1mp(x):
 
 def binary_entropy(p):
     return np.where(p > 0, - p * np.log2(p) - (1 - p) * np.log2(1 - p), 0)
+
+
+def flatten(a):
+    b = []
+    for ai in a:
+        if type(ai) is list:
+            b += ai
+        else:
+            b.append(ai)
+    return b
