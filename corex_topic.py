@@ -222,6 +222,12 @@ class Corex(object):
         else:
             return labels
 
+    def predict_proba(self, X):
+        return self.transform(X, details=True)
+
+    def predict(self, X):
+        return self.transform(X, details=False)
+
     def preprocess(self, X):
         """Data can be binary or can be in the range [0,1], where that is interpreted as the probability to
         see this variable in a given sample"""
