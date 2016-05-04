@@ -86,6 +86,7 @@ class Corex(object):
             AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 
     """
+
     def __init__(self, n_hidden=2, max_iter=200, eps=1e-5, seed=None, verbose=False, count='binarize',
                  tree=True, **kwargs):
         self.n_hidden = n_hidden  # Number of hidden factors to use (Y_1,...Y_m) in paper
@@ -158,6 +159,9 @@ class Corex(object):
         X = self.preprocess(X)
         self.initialize_parameters(X)
         p_y_given_x = np.random.random((self.n_samples, self.n_hidden))
+        if anchors is not None:
+            for j, a in enumerate(anchors):
+                p_y_given_x[:, j] = 0.5 * p_y_given_x[:, j] + 0.5 * X[:, a].mean(axis=1).A1  # Assumes X is a binary matrix
 
         for nloop in range(self.max_iter):
             if nloop > 0:
@@ -190,7 +194,6 @@ class Corex(object):
         self.p_y_given_x, self.log_z = self.calculate_latent(X, self.theta)  # Needed to output labels
         self.mis = self.calculate_mis(self.theta, self.log_p_y)  # / self.h_x  # could normalize MIs
         return self.labels
-
 
     def transform(self, X, details=False):
         """
@@ -255,7 +258,8 @@ class Corex(object):
             self.alpha = np.ones((self.n_hidden, self.n_visible), dtype=float)
         self.tc_history = []
         self.tcs = np.zeros(self.n_hidden)
-        self.word_counts = np.array(X.sum(axis=0)).ravel()  # 1-d array of total word occurrences. (Probably slow for CSR)
+        self.word_counts = np.array(
+            X.sum(axis=0)).ravel()  # 1-d array of total word occurrences. (Probably slow for CSR)
         if np.any(self.word_counts == 0) or np.any(self.word_counts == self.n_samples):
             print 'warning: Some words never appear (or always appear)'
             self.word_counts = self.word_counts.clip(0.01, self.n_samples - 0.01)
@@ -274,7 +278,8 @@ class Corex(object):
         """Estimate marginal parameters from data and expected latent labels."""
         # log p(x_i=1|y)
         n_samples = X.shape[0]
-        p_dot_y = X.T.dot(p_y_given_x).clip(0.01 * np.exp(log_p_y), (n_samples - 0.01) * np.exp(log_p_y))  # nv by ns dot ns by m -> nv by m  # TODO: Change to CSC for speed?
+        p_dot_y = X.T.dot(p_y_given_x).clip(0.01 * np.exp(log_p_y), (n_samples - 0.01) * np.exp(
+            log_p_y))  # nv by ns dot ns by m -> nv by m  # TODO: Change to CSC for speed?
         lp_1g1 = np.log(p_dot_y) - np.log(n_samples) - log_p_y
         lp_1g0 = np.log(self.word_counts[:, np.newaxis] - p_dot_y) - np.log(n_samples) - log_1mp(self.log_p_y)
         lp_0g0 = log_1mp(lp_1g0)
@@ -290,8 +295,8 @@ class Corex(object):
             sa = np.sum(self.alpha[tcs > tc_oom], axis=0)
             self.t = np.where(sa > 1.1, 1.3 * self.t, self.t)
             mis = self.calculate_mis(theta, log_p_y)
-            #tc_oom = np.median(self.h_x)  # \propto TC of a small group of corr. variables w/median entropy...
-            #t = 20 + (20 * np.abs(tcs) / tc_oom).reshape((self.n_hidden, 1))  # worked well in many tests
+            # tc_oom = np.median(self.h_x)  # \propto TC of a small group of corr. variables w/median entropy...
+            # t = 20 + (20 * np.abs(tcs) / tc_oom).reshape((self.n_hidden, 1))  # worked well in many tests
             t = (1 + self.t * np.abs(tcs).reshape((self.n_hidden, 1)))
             maxmis = np.max(mis, axis=0)
             with np.errstate(under='ignore'):
@@ -342,7 +347,7 @@ class Corex(object):
         with np.errstate(under='ignore'):
             log_z = logsumexp(log_pygx_unnorm, axis=0)  # Essential to maintain precision.
             p_norm = np.exp(log_pygx_unnorm[1] - log_z)
-        return p_norm.clip(1e-6, 1-1e-6), log_z  # ns by m
+        return p_norm.clip(1e-6, 1 - 1e-6), log_z  # ns by m
 
     def update_tc(self, log_z):
         self.tcs = np.mean(log_z, axis=0)
