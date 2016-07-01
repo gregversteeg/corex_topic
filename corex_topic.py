@@ -379,15 +379,15 @@ class Corex(object):
 
     def save(self, filename):
         """ Pickle a class instance. E.g., corex.save('saved.dat') """
-        import pickle
+        import cPickle
         if path.dirname(filename) and not path.exists(path.dirname(filename)):
             makedirs(path.dirname(filename))
-        pickle.dump(self, open(filename, 'w'), protocol=-1)
+        cPickle.dump(self, open(filename, 'w'), protocol=-1)
 
     def load(self, filename):
         """ Unpickle class instance. E.g., corex = ce.Marginal_Corex().load('saved.dat') """
-        import pickle
-        return pickle.load(open(filename))
+        import cPickle
+        return cPickle.load(open(filename))
 
     def sort_and_output(self, X):
         order = np.argsort(self.tcs)[::-1]  # Order components from strongest TC to weakest
