@@ -164,10 +164,11 @@ class Corex(object):
                 p_y_given_x[:, j] = 0.5 * p_y_given_x[:, j] + 0.5 * X[:, a].mean(axis=1).A1  # Assumes X is a binary matrix
 
         for nloop in range(self.max_iter):
-            if nloop > 0:
-                for j in np.where(((self.alpha >= 1.) * self.sign).sum(axis=1) < 0)[0]:
-                    # Switch Y labels so that p(Y) <= 0.5
-                    p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
+            if nloop > 1:
+                for j in range(self.n_hidden):
+                    if self.sign[j, np.argmax(self.mis[j])] < 0:
+                        # Switch label for Y_j so that it is correlated with the top word
+                        p_y_given_x[:, j] = 1. - p_y_given_x[:, j]
             self.log_p_y = self.calculate_p_y(p_y_given_x)
             self.theta = self.calculate_theta(X, p_y_given_x, self.log_p_y)  # log p(x_i=1|y)  nv by m by k
 
@@ -299,16 +300,19 @@ class Corex(object):
             # t = 20 + (20 * np.abs(tcs) / tc_oom).reshape((self.n_hidden, 1))  # worked well in many tests
             t = (1 + self.t * np.abs(tcs).reshape((self.n_hidden, 1)))
             maxmis = np.max(mis, axis=0)
+            for i in np.where((mis == maxmis).sum(axis=0))[0]:  # Break ties for the largest MI
+                mis[:, i] += 1e-10 * np.random.random(self.n_hidden)
+                maxmis[i] = np.max(mis[:, i])
             with np.errstate(under='ignore'):
                 alphaopt = np.exp(t * (mis - maxmis) / self.h_x)
-            return alphaopt
         else:
             # TODO: Can we make a fast non-tree version of update in the AISTATS paper?
-            alpha = np.zeros((self.n_hidden, self.n_visible))
+            alphaopt = np.zeros((self.n_hidden, self.n_visible))
             mis = self.calculate_mis(theta, log_p_y)
             top_ys = np.argsort(-mis, axis=0)[:self.tree]
             raise NotImplementedError
-        return alpha
+        self.mis = mis  # So we don't have to recalculate it when used later
+        return alphaopt
 
     def calculate_latent(self, X, theta):
         """"Calculate the probability distribution for hidden factors for each sample."""
