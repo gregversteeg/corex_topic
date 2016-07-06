@@ -172,7 +172,7 @@ class Corex(object):
             self.log_p_y = self.calculate_p_y(p_y_given_x)
             self.theta = self.calculate_theta(X, p_y_given_x, self.log_p_y)  # log p(x_i=1|y)  nv by m by k
 
-            if self.n_hidden > 1 and nloop > 0:  # Structure learning step
+            if nloop > 0:  # Structure learning step
                 self.alpha = self.calculate_alpha(X, p_y_given_x, self.theta, self.log_p_y, self.tcs)
             if anchors is not None:
                 for a in flatten(anchors):
@@ -290,12 +290,14 @@ class Corex(object):
     def calculate_alpha(self, X, p_y_given_x, theta, log_p_y, tcs):
         """A rule for non-tree CorEx structure."""
         # TODO: Could make it sparse also? Well, maybe not... at the beginning it's quite non-sparse
-        if self.tree:
+        mis = self.calculate_mis(theta, log_p_y)
+        if self.n_hidden == 1:
+            alphaopt = np.ones((1, self.n_visible))
+        elif self.tree:
             # sa = np.sum(self.alpha, axis=0)
             tc_oom = 1. / self.n_samples
             sa = np.sum(self.alpha[tcs > tc_oom], axis=0)
             self.t = np.where(sa > 1.1, 1.3 * self.t, self.t)
-            mis = self.calculate_mis(theta, log_p_y)
             # tc_oom = np.median(self.h_x)  # \propto TC of a small group of corr. variables w/median entropy...
             # t = 20 + (20 * np.abs(tcs) / tc_oom).reshape((self.n_hidden, 1))  # worked well in many tests
             t = (1 + self.t * np.abs(tcs).reshape((self.n_hidden, 1)))
@@ -308,7 +310,6 @@ class Corex(object):
         else:
             # TODO: Can we make a fast non-tree version of update in the AISTATS paper?
             alphaopt = np.zeros((self.n_hidden, self.n_visible))
-            mis = self.calculate_mis(theta, log_p_y)
             top_ys = np.argsort(-mis, axis=0)[:self.tree]
             raise NotImplementedError
         self.mis = mis  # So we don't have to recalculate it when used later
