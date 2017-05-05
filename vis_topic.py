@@ -21,7 +21,7 @@ pattern = '\\b[A-Za-z]+\\b'
 np.seterr(all='ignore')
 
 
-def vis_rep(corex, row_label=None, column_label=None, prefix='topics'):
+def vis_rep(corex, data=None, row_label=None, column_label=None, prefix='topics'):
     """Various visualizations and summary statistics for a one layer representation"""
     if column_label is None:
         column_label = map(str, range(data.shape[1]))
@@ -37,6 +37,8 @@ def vis_rep(corex, row_label=None, column_label=None, prefix='topics'):
     output_strong(corex.tcs, alpha, corex.mis, corex.labels, prefix=prefix)
     anomalies(corex.log_z, row_label=row_label, prefix=prefix)
     plot_convergence(corex.tc_history, prefix=prefix)
+    if data is not None:
+        plot_heatmaps(data, alpha, corex.mis, column_label, corex.p_y_given_x, prefix=prefix)
 
 
 def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_anchors=0):
@@ -87,6 +89,37 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_
     json.dump(json_graph.node_link_data(h), safe_open(prefix + '/graphs/force_nontree.json', 'w+'))
 
     return g
+
+
+def plot_heatmaps(data, alpha, mis, column_label, cont, topk=40, athresh=0.2, prefix=''):
+    import seaborn as sns
+    cmap = sns.cubehelix_palette(as_cmap=True, light=.9)
+    import matplotlib.pyplot as plt
+    m, nv = mis.shape
+    for j in range(m):
+        inds = np.where(np.logical_and(alpha[j] > athresh, mis[j] > 0.))[0]
+        inds = inds[np.argsort(- alpha[j, inds] * mis[j, inds])][:topk]
+        if len(inds) >= 2:
+            plt.clf()
+            order = np.argsort(cont[:,j])
+            if type(data) == np.ndarray:
+                subdata = data[:, inds][order].T
+            else:
+                # assume sparse
+                subdata = data[:, inds].toarray()
+                subdata = subdata[order].T
+            columns = [column_label[i] for i in inds]
+            fig, ax = plt.subplots(figsize=(20, 10))
+            sns.heatmap(subdata, vmin=0, vmax=1, cmap=cmap, yticklabels=columns, xticklabels=False, ax=ax, cbar_kws={"ticks": [0, 0.5, 1]})
+            plt.yticks(rotation=0)
+            filename = '{}/heatmaps/group_num={}.png'.format(prefix, j)
+            if not os.path.exists(os.path.dirname(filename)):
+                os.makedirs(os.path.dirname(filename))
+            plt.title("Latent factor {}".format(j))
+            plt.savefig(filename, bbox_inches='tight')
+            plt.close('all')
+            #plot_rels(data[:, inds], map(lambda q: column_label[q], inds), colors=cont[:, j],
+            #          outfile=prefix + '/relationships/group_num=' + str(j), latent=labels[:, j], alpha=0.1)
 
 
 def make_graph(weights, node_weights, column_label, max_edges=100):
@@ -162,7 +195,7 @@ def output_cont_labels(p_y_given_x, row_label, prefix=''):
     f = safe_open(prefix + '/cont_labels.txt', 'w+')
     ns, m = p_y_given_x.shape
     for l in range(ns):
-        f.write(row_label[l] + ',' + ','.join(map(str, p_y_given_x[l, :])) + '\n')
+        f.write(row_label[l] + ',' + ','.join(map(lambda q: '{:.10f}'.format(q), np.log(p_y_given_x[l, :]))) + '\n')
     f.close()
 
 
@@ -421,6 +454,7 @@ def all_bbow(docs, n=100):
     """Split each document into a subdocuments of size n, and return as binary BOW"""
     proc = skt.CountVectorizer(token_pattern=pattern)
     proc.fit(docs)
+    ids = []
     for l, doc in enumerate(docs):
         subdocs = chunks(doc, n=n)
         submat = (proc.transform(subdocs) > 0)
@@ -428,7 +462,8 @@ def all_bbow(docs, n=100):
           mat = submat
         else:
           mat = ss.vstack([mat, submat])
-    return mat.asformat('csr'), proc
+        ids += [l]*submat.shape[0]
+    return mat.asformat('csr'), proc, ids
 
 
 def file_to_array(filename, stemming=False, strategy=2, words_per_doc=100, n_words=10000):
@@ -447,7 +482,7 @@ def file_to_array(filename, stemming=False, strategy=2, words_per_doc=100, n_wor
     if strategy == 1:
         X, proc = av_bbow(docs, n=words_per_doc)
     elif strategy == 2:
-        X, proc = all_bbow(docs, n=words_per_doc)
+        X, proc, ids = all_bbow(docs, n=words_per_doc)
     else:
         X, proc = bow(docs)
 
@@ -555,7 +590,7 @@ if __name__ == '__main__':
 
 
     # This line outputs plots showing relationships at the first layer
-    vis_rep(corexes[0], column_label=words, prefix=options.output)
+    vis_rep(corexes[0], data=X, column_label=words, prefix=options.output)
     # This line outputs a hierarchical networks structure in a .dot file in the "graphs" folder
     # And it tries to compile the dot file into a pdf using the command line utility sfdp (part of graphviz)
     vis_hierarchy(corexes, column_label=words, max_edges=options.max_edges, prefix=options.output)
