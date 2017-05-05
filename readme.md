@@ -6,13 +6,14 @@ The technique is generally more similar to the NIPS paper then the later AISTATS
 is optimized for sparse binary data. In principle, continuous values in the range zero to one can also be used as 
 inputs but the effect of this is not well tested. 
 
-A preliminary version of the technique is described in this paper.      
+The ideas were first described in these papers.      
 [*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), 
 NIPS 2014.
-
-Further theoretical developments are described here:      
 [*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), 
 AISTATS 2015.  
+
+Applications and analysis using this code appears in the following preprint. 
+[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277)
 
 ###Dependencies
 
