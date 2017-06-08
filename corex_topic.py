@@ -180,7 +180,7 @@ class Corex(object):
                 for ia, a in enumerate(anchors):
                     self.alpha[ia, a] = anchor_strength
 
-            p_y_given_x, log_z = self.calculate_latent(X, self.theta)
+            p_y_given_x, _, log_z = self.calculate_latent(X, self.theta)
 
             self.update_tc(log_z)  # Calculate TC and record history to check convergence
             self.print_verbose()
@@ -192,7 +192,7 @@ class Corex(object):
 
         if anchors is None:
             self.sort_and_output(X)
-        self.p_y_given_x, self.log_z = self.calculate_latent(X, self.theta)  # Needed to output labels
+        self.p_y_given_x, self.log_p_y_given_x, self.log_z = self.calculate_latent(X, self.theta)  # Needed to output labels
         self.mis = self.calculate_mis(self.theta, self.log_p_y)  # / self.h_x  # could normalize MIs
         return self.labels
 
@@ -325,8 +325,7 @@ class Corex(object):
         info1 = np.einsum('ji,ij->ij', self.alpha, theta[3] - theta[1] + self.px_frac)
         log_pygx_unnorm[1] = self.log_p_y + c1 + X.dot(info1)
         log_pygx_unnorm[0] = log_1mp(self.log_p_y) + c0 + X.dot(info0)
-        pygx, log_z = self.normalize_latent(log_pygx_unnorm)
-        return pygx, log_z
+        return self.normalize_latent(log_pygx_unnorm)
 
     def normalize_latent(self, log_pygx_unnorm):
         """Normalize the latent variable distribution
@@ -351,8 +350,9 @@ class Corex(object):
         """
         with np.errstate(under='ignore'):
             log_z = logsumexp(log_pygx_unnorm, axis=0)  # Essential to maintain precision.
-            p_norm = np.exp(log_pygx_unnorm[1] - log_z)
-        return p_norm.clip(1e-6, 1 - 1e-6), log_z  # ns by m
+            log_pygx = log_pygx_unnorm[1] - log_z
+            p_norm = np.exp(log_pygx)
+        return p_norm.clip(1e-6, 1 - 1e-6), log_pygx, log_z  # ns by m
 
     def update_tc(self, log_z):
         self.tcs = np.mean(log_z, axis=0)
