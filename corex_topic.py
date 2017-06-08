@@ -203,7 +203,7 @@ class Corex(object):
         Returns: , shape = [n_samples, n_hidden]
         """
         X = self.preprocess(X)
-        p_y_given_x, log_z = self.calculate_latent(X, self.theta)
+        p_y_given_x, _, log_z = self.calculate_latent(X, self.theta)
         labels = self.label(p_y_given_x)
         if details == 'surprise':
             # TODO: update
