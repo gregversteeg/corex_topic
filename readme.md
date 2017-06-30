@@ -1,24 +1,23 @@
 ## Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
 
 ### Overview
----
 
 The principle of *Cor*-relation *Ex*-planation has recently been introduced as a way to build rich representations that
-are maximally informative about the data. This project optimizes the CorEx framework for sparse binary data, so that it can be leveraged for topic modeling. Our work demonstrates CorEx finds coherent, meaningful topics that are competitive with LDA topics across a variety of metrics, despite only leverage binary counts.
+are maximally informative about the data. This project optimizes the CorEx framework for sparse binary data, so that it can be leveraged for topic modeling. Our work demonstrates CorEx finds coherent, meaningful topics that are competitive with LDA topics across a variety of metrics, despite only utilizing binary counts.
 
 This code also introduces an anchoring mechanism for integrating the CorEx topic model with domain knowledge via the information bottleneck. This anchoring is flexible and allows the user to anchor multiple words to one topic, one word to multiple topics, or any other creative combination in order to uncover topics that do not naturally emerge.
 
+Detailed analysis and applications of the CorEx topic model using this code:<br>
+[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277), preprint. [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:coUlDN9XweQJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVaffALVl60ray1Op0cqZkOZPA1b_ADU&scisf=4&ct=citation&cd=-1&hl=en)
+
+Underlying motivation and theory of CorEx:<br>
+[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222),
+NIPS 2014.  [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:92j_xtrqX_oJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVafobpFO4ed6EeXEbMQunUxHDHeuDgX&scisf=4&ct=citation&cd=-1&hl=en) <br>
+[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), 
+AISTATS 2015. [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:ZqTZyQdqI_UJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVaf3RJ7IOmG802hw7ZBnQ333f4mFDHj&scisf=4&ct=citation&cd=-1&hl=en)
+
 This code can be used for any sparse binary datasets. In principle, continuous values in the range zero to one can also be used as 
 inputs but the effect of this is not well tested. 
-
-The ideas were first described in these papers.
-[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), 
-NIPS 2014. <br>
-[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), 
-AISTATS 2015.  
-
-Applications and analysis using this code appears in the following preprint. <br>
-[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277)
 
 ### Dependencies
 
