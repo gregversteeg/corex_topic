@@ -1,21 +1,35 @@
-# Hierarchical Topic Modeling of Sparse Count Data with CorEx
+# Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
+
+## Overview
 
 The principle of *Cor*-relation *Ex*-planation has recently been introduced as a way to build rich representations that
-are maximally informative about the data. This project consists of python code to build these representations. 
-The technique is generally more similar to the NIPS paper then the later AISTATS for speed reasons. This version
-is optimized for sparse binary data. In principle, continuous values in the range zero to one can also be used as 
+are maximally informative about the data. This project optimizes the CorEx framework for sparse binary data, so that it can be leveraged for topic modeling. Our work demonstrates CorEx finds coherent, meaningful topics that are competitive with LDA topics across a variety of metrics, despite only utilizing binary counts.
+
+This code also introduces an anchoring mechanism for integrating the CorEx topic model with domain knowledge via the information bottleneck. This anchoring is flexible and allows the user to anchor multiple words to one topic, one word to multiple topics, or any other creative combination in order to uncover topics that do not naturally emerge.
+
+Detailed analysis and applications of the CorEx topic model using this code:<br>
+[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277), preprint 2017. [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:coUlDN9XweQJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVaffALVl60ray1Op0cqZkOZPA1b_ADU&scisf=4&ct=citation&cd=-1&hl=en)
+
+Underlying motivation and theory of CorEx:<br>
+[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222),
+NIPS 2014.  [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:92j_xtrqX_oJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVafobpFO4ed6EeXEbMQunUxHDHeuDgX&scisf=4&ct=citation&cd=-1&hl=en) <br>
+[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), 
+AISTATS 2015. [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:ZqTZyQdqI_UJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVaf3RJ7IOmG802hw7ZBnQ333f4mFDHj&scisf=4&ct=citation&cd=-1&hl=en)
+
+This code can be used for any sparse binary dataset. In principle, continuous values in the range zero to one can also be used as 
 inputs but the effect of this is not well tested. 
 
-The ideas were first described in these papers.      
-[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), 
-NIPS 2014.
-[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), 
-AISTATS 2015.  
+### Install
 
-Applications and analysis using this code appears in the following preprint. 
-[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277)
+To install, download using [this link](https://github.com/gregversteeg/corex_topic/archive/master.zip) 
+or clone the project by executing this command in your target directory:
+```
+git clone https://github.com/gregversteeg/corex_topic.git
+```
+Use *git pull* to get updates. The code is under development. 
+Please contact me about issues with this pre-alpha version.  
 
-###Dependencies
+### Dependencies
 
 CorEx requires numpy and scipy. If you use OS X, I recommend installing the [Scipy Superpack](http://fonnesbeck.github.io/ScipySuperpack/).
 
@@ -26,41 +40,41 @@ The visualization capabilities in vis_topic.py require other packages:
 * [graphviz](http://www.graphviz.org) (Optional, for compiling produced .dot files into pretty graphs. The command line 
 tools are called from vis_topic. Graphviz should be compiled with the triangulation library for best visual results).
 
-###Install
+## Usage
 
-To install, download using [this link](https://github.com/gregversteeg/corex_topic/archive/master.zip) 
-or clone the project by executing this command in your target directory:
-```
-git clone https://github.com/gregversteeg/corex_topic.git
-```
-Use *git pull* to get updates. The code is under development. 
-Please contact me about issues with this pre-alpha version.  
+### Command Line
 
-## Example usage with command line interface
-
-This implementation is optimized for sparse count data. Here is an example using the command line interface.
 ```python
 python vis_topic.py tests/data/twenty.txt --n_words=2000 --layers=50,5,1 -v --edges=150 -o test_output
 ```
 
-## Python API usage
+### Python API
 
-### Example
+Given a doc-word matrix, the CorEx topic model is easy to train. The code follows the scikit-learn fit/transform conventions.
 
 ```python
 import corex_topic as ct
 import vis_topic as vt
 import scipy.sparse as ss
 
-X = np.array([[0,0,0,0,0], # A matrix with rows as samples and columns as variables.
-              [0,0,0,1,1],
+# Define a matrix where rows are samples (docs) and columns are features (words)
+X = np.array([[0,0,0,1,1],
               [1,1,1,0,0],
               [1,1,1,1,1]], dtype=int)
-X = ss.csr_matrix(X)  # Sparse matrices are supported, or np.matrix(X) for dense. 
+# Sparse matrices are also supported 
+X = ss.csr_matrix(X)
 
-layer1 = ct.Corex(n_hidden=2)  # Define the number of hidden factors to use.
-layer1.fit(X)
+# Train the CorEx topic model
+topic_model = ct.Corex(n_hidden=2)  # Define the number of latent topcis to use.
+topic_model.fit(X)
+```
 
+To run twenty newsgroups, you can first run /tests/data/get_twenty.py to get a sparse matrix and then load and run it
+within ipython or whatever. 
+
+### CorEx outputs
+
+```python
 layer1.clusters  # Each variable/column is associated with one Y_j
 # array([0, 0, 0, 1, 1])
 layer1.labels[:, 0]  # Labels for each sample for Y_0
@@ -78,11 +92,6 @@ out = ct.Corex(n_hidden=100, verbose=True, max_iter=100).fit(twenty)
 words = cPickle.load(open('tests/data/dictionary20000.dat'))
 vt.vis_rep(out, column_label=words)
 ```
-
-To run twenty newsgroups, you can first run /tests/data/get_twenty.py to get a sparse matrix and then load and run it
-within ipython or whatever. 
-
-### CorEx outputs
 
 As shown in the example, *clusters* gives the variable clusters for each hidden factor Y_j and 
 *labels* gives the labels for each sample for each Y_j. 
