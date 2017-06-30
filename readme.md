@@ -1,21 +1,26 @@
-# Hierarchical Topic Modeling of Sparse Count Data with CorEx
+## Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
+
+### Overview
+---
 
 The principle of *Cor*-relation *Ex*-planation has recently been introduced as a way to build rich representations that
-are maximally informative about the data. This project consists of python code to build these representations. 
-The technique is generally more similar to the NIPS paper then the later AISTATS for speed reasons. This version
-is optimized for sparse binary data. In principle, continuous values in the range zero to one can also be used as 
+are maximally informative about the data. This project optimizes the CorEx framework for sparse binary data, so that it can be leveraged for topic modeling. Our work demonstrates CorEx finds coherent, meaningful topics that are competitive with LDA topics across a variety of metrics, despite only leverage binary counts.
+
+This code also introduces an anchoring mechanism for integrating the CorEx topic model with domain knowledge via the information bottleneck. This anchoring is flexible and allows the user to anchor multiple words to one topic, one word to multiple topics, or any other creative combination in order to uncover topics that do not naturally emerge.
+
+This code can be used for any sparse binary datasets. In principle, continuous values in the range zero to one can also be used as 
 inputs but the effect of this is not well tested. 
 
-The ideas were first described in these papers.      
+The ideas were first described in these papers.
 [*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), 
-NIPS 2014.
+NIPS 2014. <br>
 [*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), 
 AISTATS 2015.  
 
-Applications and analysis using this code appears in the following preprint. 
+Applications and analysis using this code appears in the following preprint. <br>
 [*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277)
 
-###Dependencies
+### Dependencies
 
 CorEx requires numpy and scipy. If you use OS X, I recommend installing the [Scipy Superpack](http://fonnesbeck.github.io/ScipySuperpack/).
 
@@ -26,7 +31,7 @@ The visualization capabilities in vis_topic.py require other packages:
 * [graphviz](http://www.graphviz.org) (Optional, for compiling produced .dot files into pretty graphs. The command line 
 tools are called from vis_topic. Graphviz should be compiled with the triangulation library for best visual results).
 
-###Install
+### Install
 
 To install, download using [this link](https://github.com/gregversteeg/corex_topic/archive/master.zip) 
 or clone the project by executing this command in your target directory:
