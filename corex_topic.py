@@ -402,7 +402,23 @@ class Corex(object):
         p_y = np.exp(log_p_y).reshape((-1, 1))  # size n_hidden, 1
         mis = self.h_x - p_y * binary_entropy(np.exp(theta[3]).T) - (1 - p_y) * binary_entropy(np.exp(theta[2]).T)
         return (mis - 1. / (2. * self.n_samples)).clip(0.)  # P-T bias correction
-
+        
+    def get_topics(self, col2word, n_words=10, topic=None):
+        """
+        Get specified topics, or print all topics otherwise
+           
+        col2word: dictionary, key:col index, value:corresponding word for column
+        """
+        annotate = lambda q, s: q if s > 0 else '~' + q
+        m,_ = self.mis.shape
+        # Get top
+        for topic_n in range(self.labels.shape[1]):
+            # Get which words belong to the topic (alpha as defined in the papers)
+            inds = np.where(self.alpha[topic_n] >= 1.)[0]
+            # Sort topic words according to mutual information
+            inds = inds[np.argsort(-self.alpha[topic_n, inds] * self.mis[topic_n, inds])]
+            # Print topic words with highest mutual information to the topic
+            print unicode(topic_n+1) + u': ' + u','.join([annotate(col2word[ind],self.sign[topic_n,ind]) for ind in inds[:n_words]])
 
 def log_1mp(x):
     return np.log1p(-np.exp(x))
