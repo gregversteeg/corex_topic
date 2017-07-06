@@ -110,6 +110,21 @@ vt.vis_hierarchy([topic_model, tm_layer2, tm_layer3], column_label=words, max_ed
 To get better topic results, you can restart the CorEx topic model several times from different initializations, and choose the topic model that has the highest TC (explains the most information about the documents).
 
 
+## Anchoring for Semi-Supervised Topic Modeling
+
+Anchored CorEx allows the user to anchor words to topics in a semi-supervised fashion to uncover elusive topics. If ```words``` is initialized, anchoring is effortless:
+
+```python
+topic_model.fit(X, words=words, anchors=[['dog','cat'], 'apple'], anchor_strength=2)
+```
+
+This anchors "dog" and "cat" to the first topic, and "apple" to the second topic. As a rule of thumb ```anchor_strength``` should always be set above 1, where setting ```anchor_strength``` between 1 and 3 gently nudges a topic towards the anchor words, and setting it above 5 more strongly encourages the topic towards the anchor words. We encourage users to experiment with ```anchor_strength``` for their own purposes.
+
+One word can be anchored to multiple topics, multiple words anchored to one topic, or any other combination of anchoring strategies. The corex-topic-example notebook details several strategies for anchoring.
+
+If ```words``` is not initialized, you may anchor by specifying the integer column feature indices that you wish to anchor on.
+
+
 
 ## Technical notes
 
@@ -123,10 +138,9 @@ For speed this version of the CorEx topic model works only on binary data and pr
  This changes the number of documents so it may take some work to match the ids back, if desired. Implicitly, this
  will weight longer documents more heavily. Generally this seems like the most theoretically justified method. Ideally, you could aggregate the latent factors over sub-documents to get 'counts' of latent factors at the higher layers. 
  
-3. Fractional counts. This converts counts into a fraction of the background rate, with 1 as the max. Short documents tend to stay binary and words in long documents are weighted according to their frequency with respect to background in the corpus. This seems to work Ok on tests. It requires no preprocessing of count data and it uses the full range of possible inputs. However, this approach is not very rigorous or well tested.
+ 3. Fractional counts. This converts counts into a fraction of the background rate, with 1 as the max. Short documents tend to stay binary and words in long documents are weighted according to their frequency with respect to background in the corpus. This seems to work Ok on tests. It requires no preprocessing of count data and it uses the full range of possible inputs. However, this approach is not very rigorous or well tested.
                         
- For the python API, for 1 and 2, you can use the functions in ```vis_topic.py``` to process data or do the same yourself.
- Option 0 is specified through the python api with count='binarize' and option 3 with count='fraction'. While fractional counts may be work theoretically, their usage in the CorEx topic model has not be adequately tested.
+For the python API, for 1 and 2, you can use the functions in ```vis_topic.py``` to process data or do the same yourself. Naive binarization is specified through the python api with count='binarize' and fractional counts with count='fraction'. While fractional counts may be work theoretically, their usage in the CorEx topic model has not be adequately tested.
 
 
 ## Licensing
