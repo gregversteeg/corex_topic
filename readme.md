@@ -1,5 +1,12 @@
 # Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
 
+**Contributors:** [Greg Ver Steeg](https://www.isi.edu/people/gregv/about)<sup>1</sup>, 
+[Ryan J. Gallagher](http://ryanjgallagher.github.io/)<sup>1,2</sup>, 
+[David Kale](http://www-scf.usc.edu/~dkale/)<sup>1</sup>
+
+<sup>1</sup> [Information Sciences Institute](https://www.isi.edu/), University of Southern California, 
+<sup>2</sup> [Network Science Institute](https://www.networkscienceinstitute.org/), Northeastern University
+
 ## Overview
 
 The principle of *Cor*-relation *Ex*-planation has recently been introduced as a way to build rich representations that
@@ -8,13 +15,11 @@ are maximally informative about the data. This project optimizes the CorEx frame
 This code also introduces an anchoring mechanism for integrating the CorEx topic model with domain knowledge via the information bottleneck. This anchoring is flexible and allows the user to anchor multiple words to one topic, one word to multiple topics, or any other creative combination in order to uncover topics that do not naturally emerge.
 
 Detailed analysis and applications of the CorEx topic model using this code:<br>
-[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277), preprint 2017. [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:coUlDN9XweQJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVaffALVl60ray1Op0cqZkOZPA1b_ADU&scisf=4&ct=citation&cd=-1&hl=en)
+[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277), Gallagher et al., preprint 2017.
 
 Underlying motivation and theory of CorEx:<br>
-[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222),
-NIPS 2014.  [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:92j_xtrqX_oJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVafobpFO4ed6EeXEbMQunUxHDHeuDgX&scisf=4&ct=citation&cd=-1&hl=en) <br>
-[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), 
-AISTATS 2015. [[bibtex]](https://scholar.googleusercontent.com/scholar.bib?q=info:ZqTZyQdqI_UJ:scholar.google.com/&output=citation&scisig=AAGBfm0AAAAAWVaf3RJ7IOmG802hw7ZBnQ333f4mFDHj&scisf=4&ct=citation&cd=-1&hl=en)
+[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), Ver Steeg and Galstyan, NIPS 2014. <br>
+[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), Ver Steeg and Galstyan, AISTATS 2015.
 
 This code can be used for any sparse binary dataset. In principle, continuous values in the range zero to one can also be used as 
 inputs but the effect of this is not well tested. 
@@ -27,7 +32,7 @@ or clone the project by executing this command in your target directory:
 git clone https://github.com/gregversteeg/corex_topic.git
 ```
 Use *git pull* to get updates. The code is under development. 
-Please contact me about issues with this pre-alpha version.  
+Please contact Greg Ver Steeg about issues with this pre-alpha version.  
 
 ### Dependencies
 
@@ -40,15 +45,7 @@ The visualization capabilities in vis_topic.py require other packages:
 * [graphviz](http://www.graphviz.org) (Optional, for compiling produced .dot files into pretty graphs. The command line 
 tools are called from vis_topic. Graphviz should be compiled with the triangulation library for best visual results).
 
-## Usage
-
-### Command Line
-
-```python
-python vis_topic.py tests/data/twenty.txt --n_words=2000 --layers=50,5,1 -v --edges=150 -o test_output
-```
-
-### Python API
+## Running the CorEx Topic Model
 
 Given a doc-word matrix, the CorEx topic model is easy to train. The code follows the scikit-learn fit/transform conventions.
 
@@ -63,49 +60,24 @@ X = np.array([[0,0,0,1,1],
               [1,1,1,1,1]], dtype=int)
 # Sparse matrices are also supported 
 X = ss.csr_matrix(X)
+# Word labels for each column can be provided to the model
+words = ['dog', 'cat', 'fish', 'apple', 'orange']
 
 # Train the CorEx topic model
-topic_model = ct.Corex(n_hidden=2)  # Define the number of latent topcis to use.
-topic_model.fit(X)
+topic_model = ct.Corex(n_hidden=2)  # Define the number of latent topics to use.
+topic_model.fit(X, words=words)
 ```
 
-To run twenty newsgroups, you can first run /tests/data/get_twenty.py to get a sparse matrix and then load and run it
-within ipython or whatever. 
-
-### CorEx outputs
+Once the model is trained, the topics can be accessed through the ```get_topics()``` function.
 
 ```python
-layer1.clusters  # Each variable/column is associated with one Y_j
-# array([0, 0, 0, 1, 1])
-layer1.labels[:, 0]  # Labels for each sample for Y_0
-# array([0, 0, 1, 1])
-layer1.labels[:, 1]  # Labels for each sample for Y_1
-# array([0, 1, 0, 1])
-layer1.tcs  # TC(X;Y_j) (all info measures reported in nats). 
-# array([ 1.385,  0.692])
-# TC(X_Gj) >=TC(X_Gj ; Y_j)
-# For this example, TC(X1,X2,X3)=1.386, TC(X4,X5) = 0.693
-
-# If you ran python get_twenty.py then 
-twenty = cPickle.load(open('tests/data/twenty_mat20000.dat'))
-out = ct.Corex(n_hidden=100, verbose=True, max_iter=100).fit(twenty)
-words = cPickle.load(open('tests/data/dictionary20000.dat'))
-vt.vis_rep(out, column_label=words)
+topic_model.get_topics()
 ```
 
-As shown in the example, *clusters* gives the variable clusters for each hidden factor Y_j and 
-*labels* gives the labels for each sample for each Y_j. 
-Probabilistic labels can be accessed with *p_y_given_x*. 
+Each topic explains a certain portion of the *total correlation*. These TCs can be accessed through the ```tcs``` attribute, and the overall TC (the sum of the topic TCs) can be accessed through ```tc```.
 
-The total correlation explained by each hidden factor, TC(X;Y_j), is accessed with *tcs*. Outputs are sorted
-so that Y_0 is always the component that explains the highest TC. 
-Like point-wise mutual information, you can define point-wise total correlation measure for an individual sample, x^l     
-TC(X = x^l;Y_j) == log Z_j(x)   
-This quantity is accessed with *log_z*. This represents the correlations explained by Y_j for an individual sample.
-A low (or even negative!) number can be obtained. This can be interpreted as a measure of how surprising an individual
-observation is. This can be useful for anomaly detection. 
+Full details and examples on getting output from the CorEx topic model and interpreting it are provided in the corex-topic-example Jupyter notebook.
 
-See the main section of vis_topic.py for more ideas of how to do visualization.
 
 ### Generalizations
 
