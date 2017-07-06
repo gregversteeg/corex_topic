@@ -74,34 +74,29 @@ Once the model is trained, the topics can be accessed through the ```get_topics(
 topic_model.get_topics()
 ```
 
-Each topic explains a certain portion of the *total correlation*. These TCs can be accessed through the ```tcs``` attribute, and the overall TC (the sum of the topic TCs) can be accessed through ```tc```.
-
-Full details and examples on getting output from the CorEx topic model and interpreting it are provided in the corex-topic-example Jupyter notebook.
+The corex-topic-example notebook gives full details and examples on how to retrieve and interpret output from the CorEx topic model.
 
 
-### Generalizations
+## Building hierarchial topic models
 
-#### Hierarchical CorEx
-The simplest extension is to stack CorEx representations on top of each other. 
+It is natural and straightforward to extend the CorEx topic model to a hierarchical representation.
+
+```python
+# Train the first layer
+topic_model = ct.Corex(n_hidden=100)
+topic_model.fit(X)
+
+# Train successive layers
+tm_layer2 = ct.Corex(n_hidden=10)
+tm_layer2.fit(topic_model.labels)
+
+tm_layer3 = ct.Corex(n_hidden=1)
+tm_layer3.fit(tm_layer2.labels)
 ```
-layer1 = ct.Corex(n_hidden=100)
-layer2 = ct.Corex(n_hidden=10)
-layer3 = ct.Corex(n_hidden=1)
-Y1 = layer1.fit_transform(X)
-Y2 = layer2.fit_transform(np.matrix(Y1.labels))
-Y3 = layer2.fit_transform(np.matrix(Y2.labels))
-```
-The sum of total correlations explained by each layer provides a successively tighter lower bound on TC(X) (see AISTATS paper). 
- To assess how large your representations should be, look at quantities
-like layer.tcs. Do all the Y_j's explain some correlation (i.e., all the TCs are significantly larger than 0)? If not
-you should probably use a smaller representation.
+Each topic explains a certain portion of the *total correlation*. These TCs can be accessed through the ```tcs``` attribute, and the overall TC (the sum of the topic TCs) can be accessed through ```tc```. To assess how many topics to choose at each layer, you may look at the distribution of ```tcs``` for each layer. As a rule of thumb, additional latent topics should be added until additional topics contribute little (less than 1%) to the overall TC.
 
-#### Getting better results
+To get better topic results, you can restart the CorEx topic model several times from different initializations, and choose the topic model that has the highest TC (explains the most information about the documents).
 
-Note that CorEx can find different local optima after different random restarts. You can run it k times and take
-the best solution (with the highest TC).
-This version only allows for tree structure (a word can be in only one topic). In principle, we could use newer results
-from the AISTATS paper to get around this but it slows things down a lot. 
 
 #### Better visualizations
 If you install the gts library and THEN install graphviz, graphviz should be capable of better visualizations (by using
