@@ -487,7 +487,7 @@ class Corex(object):
             else:
                 topic = [(ind, self.sign[n,ind]*self.mis[n,ind]) for ind in inds[:n_words]]
             # Add topic to list of topics if returning all topics. Otherwise, return topic
-            if topic is not None:
+            if len(topic_ns) != 1:
                 topics.append(topic)
             else:
                 return topic 
@@ -511,12 +511,3 @@ def flatten(a):
         else:
             b.append(ai)
     return b
-
-
-
-X = np.array([[0,0,0,1,1],
-              [1,1,1,0,0],
-              [1,1,1,1,1]], dtype=int)
-X = ss.csr_matrix(X)
-topic_model = Corex(n_hidden=2)
-topic_model.fit(X, words=['dog','cat','fish', 'apple','orange'], anchors=[3, ['dog', 'cat']], anchor_strength=10)
