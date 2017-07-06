@@ -10,7 +10,7 @@
 ## Overview
 
 The principle of *Cor*-relation *Ex*-planation has recently been introduced as a way to build rich representations that
-are maximally informative about the data. This project optimizes the CorEx framework for sparse binary data, so that it can be leveraged for topic modeling. Our work demonstrates CorEx finds coherent, meaningful topics that are competitive with LDA topics across a variety of metrics, despite only utilizing binary counts.
+are maximally informative about data. This project optimizes the CorEx framework for sparse binary data, so that it can be leveraged for topic modeling. Our work demonstrates CorEx finds coherent, meaningful topics that are competitive with LDA topics across a variety of metrics, despite the fact CorEx only utilizes binary counts.
 
 This code also introduces an anchoring mechanism for integrating the CorEx topic model with domain knowledge via the information bottleneck. This anchoring is flexible and allows the user to anchor multiple words to one topic, one word to multiple topics, or any other creative combination in order to uncover topics that do not naturally emerge.
 
@@ -31,18 +31,19 @@ or clone the project by executing this command in your target directory:
 ```
 git clone https://github.com/gregversteeg/corex_topic.git
 ```
-Use *git pull* to get updates. The code is under development. 
-Please contact Greg Ver Steeg about issues with this pre-alpha version.  
+Use *git pull* to get updates. 
+
+The code is under development. Please contact Greg Ver Steeg about issues with this pre-alpha version.  
 
 ### Dependencies
 
-CorEx requires numpy and scipy. If you use OS X, I recommend installing the [Scipy Superpack](http://fonnesbeck.github.io/ScipySuperpack/).
+CorEx requires numpy and scipy. If you use OS X, we recommend installing the [Scipy Superpack](http://fonnesbeck.github.io/ScipySuperpack/).
 
 The visualization capabilities in vis_topic.py require other packages: 
 * matplotlib - Already in scipy superpack.
 * [networkx](http://networkx.github.io)  - A network manipulation library. 
 * sklearn - Already in scipy superpack and only required for visualizations. 
-* [graphviz](http://www.graphviz.org) (Optional, for compiling produced .dot files into pretty graphs. The command line 
+* [graphviz](http://www.graphviz.org) (optional, for compiling produced .dot files into pretty graphs. The command line 
 tools are called from vis_topic. Graphviz should be compiled with the triangulation library for best visual results).
 
 ## Running the CorEx Topic Model
@@ -64,7 +65,7 @@ X = ss.csr_matrix(X)
 words = ['dog', 'cat', 'fish', 'apple', 'orange']
 
 # Train the CorEx topic model
-topic_model = ct.Corex(n_hidden=2)  # Define the number of latent topics to use.
+topic_model = ct.Corex(n_hidden=2)  # Define the number of latent (hidden) topics to use.
 topic_model.fit(X, words=words)
 ```
 
@@ -99,7 +100,7 @@ tm_layer2.fit(topic_model.labels)
 tm_layer3 = ct.Corex(n_hidden=1)
 tm_layer3.fit(tm_layer2.labels)
 ```
-Each topic explains a certain portion of the *total correlation*. These TCs can be accessed through the ```tcs``` attribute, and the overall TC (the sum of the topic TCs) can be accessed through ```tc```. To assess how many topics to choose at each layer, you may look at the distribution of ```tcs``` for each layer. As a rule of thumb, additional latent topics should be added until additional topics contribute little (less than 1%) to the overall TC.
+Each topic explains a certain portion of the *total correlation*. These topic TCs can be accessed through the ```tcs``` attribute, and the overall TC (the sum of the topic TCs) can be accessed through ```tc```. To assess how many topics to choose at each layer, you may look at the distribution of ```tcs``` for each layer. As a rule of thumb, additional latent topics should be added until additional topics contribute little (less than 1%) to the overall TC.
 
 Visualizations of the hierarchical topic model can be accessed through ```vis_topic.py``` if you have graphviz installed.
 
@@ -112,7 +113,7 @@ To get better topic results, you can restart the CorEx topic model several times
 
 ## Anchoring for Semi-Supervised Topic Modeling
 
-Anchored CorEx allows the user to anchor words to topics in a semi-supervised fashion to uncover elusive topics. If ```words``` is initialized, anchoring is effortless:
+Anchored CorEx allows a user to anchor words to topics in a semi-supervised fashion to uncover otherwise elusive topics. If ```words``` is initialized, anchoring is effortless:
 
 ```python
 topic_model.fit(X, words=words, anchors=[['dog','cat'], 'apple'], anchor_strength=2)
@@ -128,7 +129,7 @@ If ```words``` is not initialized, you may anchor by specifying the integer colu
 
 ## Technical notes
 
-For speed this version of the CorEx topic model works only on binary data and produces binary latent factors. For short to medium length documents, our work demonstrates CorEx produces coherent topics that are as good as or better than those produced by LDA. However, you may wish to consider additional preprocessing for working with longer documents. We have several strategies for handling text data. 
+For speed reasons, this version of the CorEx topic model works only on binary data and produces binary latent factors. For short to medium length documents, our work demonstrates CorEx produces coherent topics that are as good as or better than those produced by LDA. However, you may wish to consider additional preprocessing for working with longer documents. We have several strategies for handling text data. 
  
 0. Naive binarization. This will be good for documents of similar length and especially short- to medium-length documents. 
  
@@ -141,6 +142,8 @@ For speed this version of the CorEx topic model works only on binary data and pr
  3. Fractional counts. This converts counts into a fraction of the background rate, with 1 as the max. Short documents tend to stay binary and words in long documents are weighted according to their frequency with respect to background in the corpus. This seems to work Ok on tests. It requires no preprocessing of count data and it uses the full range of possible inputs. However, this approach is not very rigorous or well tested.
                         
 For the python API, for 1 and 2, you can use the functions in ```vis_topic.py``` to process data or do the same yourself. Naive binarization is specified through the python api with count='binarize' and fractional counts with count='fraction'. While fractional counts may be work theoretically, their usage in the CorEx topic model has not be adequately tested.
+
+Also note that also for speed reasons, the CorEx topic model enforces single membership of words in topics.
 
 
 ## Licensing
