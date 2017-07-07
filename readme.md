@@ -144,8 +144,3 @@ For speed reasons, this version of the CorEx topic model works only on binary da
 For the python API, for 1 and 2, you can use the functions in ```vis_topic.py``` to process data or do the same yourself. Naive binarization is specified through the python api with count='binarize' and fractional counts with count='fraction'. While fractional counts may be work theoretically, their usage in the CorEx topic model has not be adequately tested.
 
 Also note that also for speed reasons, the CorEx topic model enforces single membership of words in topics.
-
-
-## Licensing
-This version is free to use for academic and non-commercial purposes. For commercial uses, this code is free to try 
-for 30 days. Please contact us for information on licensing arrangements. 
