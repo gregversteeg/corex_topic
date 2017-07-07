@@ -81,7 +81,7 @@ Summary files and visualizations can be outputted from ```vis_topic.py```.
 vt.vis_rep(topic_model, column_label=words, prefix='topic-model-example')
 ```
 
-The corex-topic-example notebook gives full details and examples on how to retrieve and interpret output from the CorEx topic model.
+The [corex-topic-example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb) gives full details and examples on how to retrieve and interpret output from the CorEx topic model.
 
 
 ## Building a Hierarchical Topic Models
@@ -121,7 +121,7 @@ topic_model.fit(X, words=words, anchors=[['dog','cat'], 'apple'], anchor_strengt
 
 This anchors "dog" and "cat" to the first topic, and "apple" to the second topic. As a rule of thumb ```anchor_strength``` should always be set above 1, where setting ```anchor_strength``` between 1 and 3 gently nudges a topic towards the anchor words, and setting it above 5 more strongly encourages the topic towards the anchor words. We encourage users to experiment with ```anchor_strength``` for their own purposes.
 
-One word can be anchored to multiple topics, multiple words anchored to one topic, or any other combination of anchoring strategies. The corex-topic-example notebook details several strategies for anchoring.
+One word can be anchored to multiple topics, multiple words anchored to one topic, or any other combination of anchoring strategies. The [corex-topic-example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb) details several strategies for anchoring.
 
 If ```words``` is not initialized, you may anchor by specifying the integer column feature indices that you wish to anchor on.
 
