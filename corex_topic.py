@@ -9,6 +9,7 @@ AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 
 Code below written by:
 Greg Ver Steeg (gregv@isi.edu), 2015.
+Ryan J. Gallagher (gallagher.r@husky.neu.edu)
 
 License: Apache V2
 """
@@ -18,11 +19,12 @@ from os import makedirs
 from os import path
 from scipy.misc import logsumexp  # Tested with 0.13.0
 import scipy.sparse as ss
+from six import string_types # For Python 2&3 compatible string checking
 
 
 class Corex(object):
     """
-    CorEx hierarchical topic models
+    Anchored CorEx hierarchical topic models
     Code follows sklearn naming/style (e.g. fit(X) to train)
 
     Parameters
@@ -73,6 +75,9 @@ class Corex(object):
 
     tc_history : array
         Shows value of TC over the course of learning. Hopefully, it is converging.
+        
+    words : list of strings
+        Feature names that label the corresponding columns of X
 
     References
     ----------
@@ -132,13 +137,14 @@ class Corex(object):
         """
         return np.sum(self.tcs)
 
-    def fit(self, X, anchors=None, anchor_strength=1):
-        """Fit CorEx on the data X. See fit_transform.
+    def fit(self, X, anchors=None, anchor_strength=1, words=None):
         """
-        self.fit_transform(X, anchors=anchors, anchor_strength=anchor_strength)
+        Fit CorEx on the data X. See fit_transform.
+        """
+        self.fit_transform(X, anchors=anchors, anchor_strength=anchor_strength, words=words)
         return self
 
-    def fit_transform(self, X, anchors=None, anchor_strength=1):
+    def fit_transform(self, X, anchors=None, anchor_strength=1, words=None):
         """Fit CorEx on the data
 
         Parameters
@@ -149,6 +155,8 @@ class Corex(object):
         anchors : A list of variables anchor each corresponding latent factor to.
 
         anchor_strength : How strongly to weight the anchors.
+        
+        words : list of strings that label the corresponding columns of X
 
         Returns
         -------
@@ -157,7 +165,8 @@ class Corex(object):
            Y's are sorted so that Y_1 explains most correlation, etc.
         """
         X = self.preprocess(X)
-        self.initialize_parameters(X)
+        self.initialize_parameters(X, words)
+        anchors = self.preprocess_anchors(anchors)
         p_y_given_x = np.random.random((self.n_samples, self.n_hidden))
         if anchors is not None:
             for j, a in enumerate(anchors):
@@ -246,10 +255,10 @@ class Corex(object):
                 doc_length = ss.diags(1. / length, 0)
                 # max_counts = ss.diags(1. / X.max(axis=1).A.ravel(), 0)
                 X = doc_length * X * bg_rate
-                X.data = np.clip(X.data, 0, 1)  # np.log(X.data) / (np.log(X.data) + 1)
+                X.data = np.clip(X.data, 0, 1)  # np.log(X.data) / (np.log(X.data) + 1)                    
         return X
 
-    def initialize_parameters(self, X):
+    def initialize_parameters(self, X, words):
         """Store some statistics about X for future use, and initialize alpha, tc"""
         self.n_samples, self.n_visible = X.shape
         if self.n_hidden > 1:
@@ -262,7 +271,7 @@ class Corex(object):
         self.word_counts = np.array(
             X.sum(axis=0)).ravel()  # 1-d array of total word occurrences. (Probably slow for CSR)
         if np.any(self.word_counts == 0) or np.any(self.word_counts == self.n_samples):
-            print 'warning: Some words never appear (or always appear)'
+            print 'WARNING: Some words never appear (or always appear)'
             self.word_counts = self.word_counts.clip(0.01, self.n_samples - 0.01)
         self.word_freq = (self.word_counts).astype(float) / self.n_samples
         self.px_frac = (np.log1p(-self.word_freq) - np.log(self.word_freq)).reshape((-1, 1))  # nv by 1
@@ -270,7 +279,47 @@ class Corex(object):
         self.h_x = binary_entropy(self.word_freq)
         if self.verbose:
             print 'word counts', self.word_counts
-
+        self.words = words
+        if words is not None:
+            if len(words) != X.shape[1]:
+                print 'WARNING: number of column labels != number of columns of X. Check len(words) and X.shape[1]'
+            col_index2word = {index:word for index,word in enumerate(words)}
+            word2col_index = {word:index for index,word in enumerate(words)}
+            self.col_index2word = col_index2word
+            self.word2col_index = word2col_index
+        else:
+            self.col_index2word = None
+            self.word2col_index = None
+            
+    def preprocess_anchors(self, anchors):
+        """Preprocess anchors so that it is a list of column indices if not already"""      
+        if anchors is not None:
+            for n, anchor_list in enumerate(anchors):
+                # Check if list of anchors or a single str or int anchor
+                if type(anchor_list) is not list:
+                    anchor_list = [anchor_list]
+                # Convert list of anchors to list of anchor indices
+                new_anchor_list = []
+                for anchor in anchor_list:    
+                    # Turn string anchors into index anchors
+                    if isinstance(anchor, string_types):
+                        if self.words is not None:
+                            if anchor in self.word2col_index:
+                                new_anchor_list.append(self.word2col_index[anchor])
+                            else:
+                                raise KeyError('Anchor word not in word column labels provided to CorEx: {}'.format(anchor))
+                        else:
+                                raise NameError("Provided non-index anchors to CorEx without also providing 'words'")
+                    else:
+                        new_anchor_list.append(anchor)
+                # Update anchors with new anchor list
+                if len(new_anchor_list) == 1:
+                    anchors[n] = new_anchor_list[0]
+                else:
+                    anchors[n] = new_anchor_list
+        
+        return anchors
+                
     def calculate_p_y(self, p_y_given_x):
         """Estimate log p(y_j=1)."""
         return np.log(np.mean(p_y_given_x, axis=0))  # n_hidden, log p(y_j=1)
@@ -402,6 +451,49 @@ class Corex(object):
         p_y = np.exp(log_p_y).reshape((-1, 1))  # size n_hidden, 1
         mis = self.h_x - p_y * binary_entropy(np.exp(theta[3]).T) - (1 - p_y) * binary_entropy(np.exp(theta[2]).T)
         return (mis - 1. / (2. * self.n_samples)).clip(0.)  # P-T bias correction
+        
+    def get_topics(self, n_words=10, topic=None, print_words=True):
+        """
+        Return list of lists of tuples. Each list consists of the top words for a topic
+        and each tuple is a pair (word, mutual information). If 'words' was not provided
+        to CorEx, then 'word' will be an integer column index of X
+        
+        topic_n : integer specifying which topic to get (0-indexed)
+        print_words : True or False, get_topics will attempt to print topics using
+                      provided column labels (through 'words') if possible. Otherwise,
+                      topics will be consist of column indices of X
+        """
+        # Determine which topics to iterate over
+        if topic is not None:
+            topic_ns = [topic]
+        else:
+            topic_ns = range(self.labels.shape[1])
+        # Determine whether to return column word labels or indices
+        if self.words is None:
+            print_words = False
+            print "NOTE: 'words' not provided to CorEx. Returning topics as lists of column indices"
+        elif len(self.words) != self.alpha.shape[1]:
+            print_words = False
+            print 'WARNING: number of column labels != number of columns of X. Cannot reliably add labels to topics. Check len(words) and X.shape[1]'
+        
+        topics = []
+        for n in topic_ns:
+            # Get indices of which words belong to the topic
+            inds = np.where(self.alpha[n] >= 1.)[0]
+            # Sort topic words according to mutual information
+            inds = inds[np.argsort(-self.alpha[n,inds] * self.mis[n,inds])]
+            # Create topic to return   
+            if print_words is True:
+                topic = [(self.col_index2word[ind], self.sign[n,ind]*self.mis[n,ind]) for ind in inds[:n_words]]
+            else:
+                topic = [(ind, self.sign[n,ind]*self.mis[n,ind]) for ind in inds[:n_words]]
+            # Add topic to list of topics if returning all topics. Otherwise, return topic
+            if len(topic_ns) != 1:
+                topics.append(topic)
+            else:
+                return topic 
+        
+        return topics
 
 
 def log_1mp(x):
