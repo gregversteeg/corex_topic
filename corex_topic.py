@@ -9,6 +9,7 @@ AISTATS, 2015. arXiv preprint arXiv:1410.7404.
 
 Code below written by:
 Greg Ver Steeg (gregv@isi.edu), 2015.
+Ryan J. Gallagher (gallagher.r@husky.neu.edu)
 
 License: Apache V2
 """
