@@ -4,8 +4,8 @@
 [Ryan J. Gallagher](http://ryanjgallagher.github.io/)<sup>1,2</sup>, 
 [David Kale](http://www-scf.usc.edu/~dkale/)<sup>1</sup>
 
-<sup>1</sup> [Information Sciences Institute](https://www.isi.edu/), University of Southern California, 
-<sup>2</sup> [Network Science Institute](https://www.networkscienceinstitute.org/), Northeastern University
+<sup>1</sup>[Information Sciences Institute](https://www.isi.edu/), University of Southern California, 
+<sup>2</sup>[Network Science Institute](https://www.networkscienceinstitute.org/), Northeastern University
 
 ## Overview
 
@@ -43,6 +43,7 @@ The visualization capabilities in vis_topic.py require other packages:
 * matplotlib - Already in scipy superpack.
 * [networkx](http://networkx.github.io)  - A network manipulation library. 
 * sklearn - Already in scipy superpack and only required for visualizations. 
+* seaborn - Only required for visualizations
 * [graphviz](http://www.graphviz.org) (optional, for compiling produced .dot files into pretty graphs. The command line 
 tools are called from vis_topic. Graphviz should be compiled with the triangulation library for best visual results).
 
@@ -129,7 +130,7 @@ If ```words``` is not initialized, you may anchor by specifying the integer colu
 
 ## Technical notes
 
-For speed reasons, this version of the CorEx topic model works only on binary data and produces binary latent factors. For short to medium length documents, our work demonstrates CorEx produces coherent topics that are as good as or better than those produced by LDA. However, you may wish to consider additional preprocessing for working with longer documents. We have several strategies for handling text data. 
+For speed reasons, this version of the CorEx topic model works only on binary data and produces binary latent factors. Despite this limitation, our work demonstrates CorEx produces coherent topics that are as good as or better than those produced by LDA for short to medium length documents. However, you may wish to consider additional preprocessing for working with longer documents. We have several strategies for handling text data. 
  
 0. Naive binarization. This will be good for documents of similar length and especially short- to medium-length documents. 
  
