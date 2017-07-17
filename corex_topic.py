@@ -166,7 +166,8 @@ class Corex(object):
         """
         X = self.preprocess(X)
         self.initialize_parameters(X, words)
-        anchors = self.preprocess_anchors(list(anchors))
+        if anchors is not None:
+            anchors = self.preprocess_anchors(list(anchors))
         p_y_given_x = np.random.random((self.n_samples, self.n_hidden))
         if anchors is not None:
             for j, a in enumerate(anchors):
