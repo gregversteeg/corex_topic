@@ -430,15 +430,20 @@ class Corex(object):
 
     def save(self, filename):
         """ Pickle a class instance. E.g., corex.save('saved.dat') """
+        # Avoid saving words with object. 
+        #TODO: figure out why Unicode sometimes causes an issue with loading after pickling
+        if self.words is not None:
+            temp_words = self.words
+            self.words = None
+        else:
+            temp_words = None
+        # Save CorEx object
         import cPickle
         if path.dirname(filename) and not path.exists(path.dirname(filename)):
             makedirs(path.dirname(filename))
-        cPickle.dump(self, open(filename, 'w'), protocol=-1)
-
-    def load(self, filename):
-        """ Unpickle class instance. E.g., corex = ce.Marginal_Corex().load('saved.dat') """
-        import cPickle
-        return cPickle.load(open(filename))
+        cPickle.dump(self, open(filename, 'wb'), protocol=-1)
+        # Restore words to CorEx object
+        self.words = temp_words
 
     def sort_and_output(self, X):
         order = np.argsort(self.tcs)[::-1]  # Order components from strongest TC to weakest
@@ -477,7 +482,7 @@ class Corex(object):
             print_words = False
             print 'WARNING: number of column labels != number of columns of X. Cannot reliably add labels to topics. Check len(words) and X.shape[1]'
         
-        topics = []
+        topics = [] # TODO: make this faster, it's slower than it should be
         for n in topic_ns:
             # Get indices of which words belong to the topic
             inds = np.where(self.alpha[n] >= 1.)[0]
@@ -513,3 +518,9 @@ def flatten(a):
         else:
             b.append(ai)
     return b
+
+
+def load(filename):
+    """ Unpickle class instance. """
+    import cPickle
+    return cPickle.load(open(filename, 'rb'))
