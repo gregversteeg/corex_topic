@@ -332,7 +332,7 @@ class Corex(object):
         p_dot_y = X.T.dot(p_y_given_x).clip(0.01 * np.exp(log_p_y), (n_samples - 0.01) * np.exp(
             log_p_y))  # nv by ns dot ns by m -> nv by m  # TODO: Change to CSC for speed?
         lp_1g1 = np.log(p_dot_y) - np.log(n_samples) - log_p_y
-        lp_1g0 = np.log(self.word_counts[:, np.newaxis] - p_dot_y) - np.log(n_samples) - log_1mp(self.log_p_y)
+        lp_1g0 = np.log(self.word_counts[:, np.newaxis] - p_dot_y) - np.log(n_samples) - log_1mp(log_p_y)
         lp_0g0 = log_1mp(lp_1g0)
         lp_0g1 = log_1mp(lp_1g1)
         return np.array([lp_0g0, lp_0g1, lp_1g0, lp_1g1])  # 4 by nv by m
