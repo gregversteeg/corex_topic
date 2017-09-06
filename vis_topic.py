@@ -5,12 +5,14 @@ import os
 from shutil import copyfile
 import codecs
 import numpy as np
+import matplotlib
+matplotlib.use('Agg') # to create visualizations on a display-less server
 import pylab
 import networkx as nx
 import textwrap
 import scipy.sparse as ss
 import sklearn.feature_extraction.text as skt
-import cPickle, pickle
+#import cPickle, pickle # neither module is used, and cPickle is not part of Anaconda build, so commented for LF run
 import corex_topic as ct
 import sys, traceback
 from time import time
@@ -24,13 +26,13 @@ np.seterr(all='ignore')
 def vis_rep(corex, data=None, row_label=None, column_label=None, prefix='topics'):
     """Various visualizations and summary statistics for a one layer representation"""
     if column_label is None:
-        column_label = map(str, range(data.shape[1]))
+        column_label = list(map(str, range(data.shape[1])))
     if row_label is None:
-        row_label = map(str, range(corex.n_samples))
+        row_label = list(map(str, range(corex.n_samples)))
 
     alpha = corex.alpha
 
-    print 'Print topics in text file'
+    print('Print topics in text file')
     output_groups(corex.tcs, alpha, corex.mis, column_label, corex.sign, prefix=prefix)
     output_labels(corex.labels, row_label, prefix=prefix)
     output_cont_labels(corex.p_y_given_x, row_label, prefix=prefix)
@@ -44,7 +46,7 @@ def vis_rep(corex, data=None, row_label=None, column_label=None, prefix='topics'
 def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_anchors=0):
     """Visualize a hierarchy of representations."""
     if column_label is None:
-        column_label = map(str, range(corexes[0].alpha.shape[1]))
+        column_label = list(map(str, range(corexes[0].alpha.shape[1])))
 
     # make l1 label
     alpha = corexes[0].alpha
@@ -79,7 +81,7 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_
         import os
         copyfile(os.path.dirname(os.path.realpath(__file__)) + '/tests/d3_files/force.html', prefix + '/graphs/force.html')
     except:
-        print "Couldn't find 'force.html' file for visualizing d3 output"
+        print("Couldn't find 'force.html' file for visualizing d3 output")
     import json
     from networkx.readwrite import json_graph
 
@@ -123,10 +125,10 @@ def plot_heatmaps(data, alpha, mis, column_label, cont, topk=40, athresh=0.2, pr
 
 
 def make_graph(weights, node_weights, column_label, max_edges=100):
-    all_edges = np.hstack(map(np.ravel, weights))
+    all_edges = np.hstack(list(map(np.ravel, weights)))
     max_edges = min(max_edges, len(all_edges))
     w_thresh = np.sort(all_edges)[-max_edges]
-    print 'weight threshold is %f for graph with max of %f edges ' % (w_thresh, max_edges)
+    print('weight threshold is %f for graph with max of %f edges ' % (w_thresh, max_edges))
     g = nx.DiGraph()
     max_node_weight = max([max(w) for w in node_weights])
     for layer, weight in enumerate(weights):
@@ -178,7 +180,9 @@ def output_groups(tcs, alpha, mis, column_label, direction, thresh=0, prefix='')
         for ind in inds:
             f.write(column_label[ind] + u', %0.3f, %0.3f, %0.3f\n' % (
                 mis[j, ind], alpha[j, ind], mis[j, ind] * alpha[j, ind]))
-        h.write(unicode(j) + u':' + u','.join([annotate(column_label[ind], direction[j,ind]) for ind in inds[:10]]) + u'\n')
+        #h.write(unicode(j) + u':' + u','.join([annotate(column_label[ind], direction[j,ind]) for ind in inds[:10]]) + u'\n')
+        h.write(str(j) + u':' + u','.join(
+            [annotate(column_label[ind], direction[j, ind]) for ind in inds[:10]]) + u'\n')
     f.close()
     h.close()
 
@@ -187,7 +191,7 @@ def output_labels(labels, row_label, prefix=''):
     f = safe_open(prefix + '/labels.txt', 'w+')
     ns, m = labels.shape
     for l in range(ns):
-        f.write(row_label[l] + ',' + ','.join(map(lambda q: '%d' % q, labels[l, :])) + '\n')
+        f.write(row_label[l] + ',' + ','.join(list(map(lambda q: '%d' % q, labels[l, :])))+ '\n')
     f.close()
 
 
@@ -195,7 +199,7 @@ def output_cont_labels(p_y_given_x, row_label, prefix=''):
     f = safe_open(prefix + '/cont_labels.txt', 'w+')
     ns, m = p_y_given_x.shape
     for l in range(ns):
-        f.write(row_label[l] + ',' + ','.join(map(lambda q: '{:.10f}'.format(q), np.log(p_y_given_x[l, :]))) + '\n')
+        f.write(row_label[l] + ',' + ','.join(list(map(lambda q: '{:.10f}'.format(q), np.log(p_y_given_x[l, :])))) + '\n')
     f.close()
 
 
@@ -218,7 +222,7 @@ def anomalies(log_z, row_label=None, prefix=''):
 
     ns = log_z.shape[0]
     if row_label is None:
-        row_label = map(str, range(ns))
+        row_label = list(map(str, range(ns)))
     a_score = np.sum(log_z[:, :], axis=1)
     mean, std = np.mean(a_score), np.std(a_score)
     a_score = (a_score - mean) / std
@@ -286,14 +290,14 @@ def edge2pdf(g, filename, threshold=0, position=None, labels=None, connected=Tru
     def cnn(node):
         #change node names for dot format
         if type(node) is tuple or type(node) is list:
-            return u'n' + u'_'.join(map(unicode, node))
+            return u'n' + u'_'.join(list(map(unicode, node)))
         else:
             return unicode(node)
 
     if connected:
         touching = list(set(sum([[a, b] for a, b in g.edges()], [])))
         g = nx.subgraph(g, touching)
-        print 'non-isolated nodes,edges', len(list(g.nodes())), len(list(g.edges()))
+        print('non-isolated nodes,edges', len(list(g.nodes())), len(list(g.edges())))
     f = safe_open(filename + '.dot', 'w+')
     if directed:
         f.write("strict digraph {\n".encode('utf-8'))
@@ -376,8 +380,8 @@ def predictable(out, data, wdict=None, topk=5, outfile='sorted_groups.txt', grap
             ixys.append(0)
             nmis.append(0)
     f = safe_open(prefix + outfile, 'w+')
-    print list(enumerate(np.argsort(-np.array(nmis))))
-    print ','.join(map(str, list(np.argsort(-np.array(nmis)))))
+    print(list(enumerate(np.argsort(-np.array(nmis)))))
+    print(','.join(list(map(str, list(np.argsort(-np.array(nmis)))))))
     for i, top in enumerate(np.argsort(-np.array(nmis))):
         f.write('Group num: %d, Score: %0.3f\n' % (top, nmis[top]))
         inds = np.where(alpha[top] > athresh)[0]
@@ -385,14 +389,14 @@ def predictable(out, data, wdict=None, topk=5, outfile='sorted_groups.txt', grap
         for ind in inds:
             f.write(wdict[ind] + ', %0.3f\n' % (mis[top, ind] / np.log(2)))
         if wdict:
-            print ','.join(map(lambda q: wdict[q], inds))
-            print ','.join(map(str, inds))
-        print top
-        print nmis[top], ixys[top], hys[top], ixys[top] / hys[top]  #,lasttc[-1][top],hys[top],lasttc[-1][top]/hys[top]
+            print(','.join(list(map(lambda q: wdict[q], inds))))
+            print(','.join(list(map(str, inds))))
+        print(top)
+        print(nmis[top], ixys[top], hys[top], ixys[top] / hys[top])  #,lasttc[-1][top],hys[top],lasttc[-1][top]/hys[top]
         if graphs:
-            print inds
+            print(inds)
             if len(inds) >= 2:
-                plot_rels(data[:, inds[:5]], map(lambda q: wdict[q], inds[:5]),
+                plot_rels(data[:, inds[:5]], list(map(lambda q: wdict[q], inds[:5])),
                           outfile='relationships/' + str(i) + '_group_num=' + str(top), latent=out[1][:, top],
                           alpha=tvalue)
     f.close()
@@ -477,7 +481,7 @@ def file_to_array(filename, stemming=False, strategy=2, words_per_doc=100, n_wor
                 docs.append(' '.join([stemmer.stem(w) for w in re.findall(pattern, line)]))
             else:
                 docs.append(' '.join([w for w in re.findall(pattern, line)]))
-    print 'processing file'
+    print('processing file')
 
     if strategy == 1:
         X, proc = av_bbow(docs, n=words_per_doc)
@@ -547,15 +551,15 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
     if not len(args) == 1:
-        print "Run with '-h' option for usage help."
+        print("Run with '-h' option for usage help.")
         sys.exit()
 
-    layers = map(int, options.layers.split(','))
+    layers = list(map(int, options.layers.split(',')))
     if layers[-1] != 1:
         layers.append(1)  # Last layer has one unit for convenience so that graph is fully connected.
 
     #Load data from text file
-    print 'reading file'
+    print('reading file')
     X, words = file_to_array(args[0], stemming=options.stemming, strategy=options.strategy,
                              words_per_doc=options.words_per_doc, n_words=options.n_words)
     # cPickle.dump(words, open(options.prefix + '/dictionary.dat', 'w'))  # TODO: output dictionary
@@ -563,9 +567,9 @@ if __name__ == '__main__':
     # Run CorEx on data
     if options.verbose:
         np.set_printoptions(precision=3, suppress=True)  # For legible output from numpy
-        print '\nData summary: X has %d rows and %d columns' % X.shape
-        print 'Variable names are: ' + ','.join(words)
-        print 'Getting CorEx results'
+        print('\nData summary: X has %d rows and %d columns' % X.shape)
+        print('Variable names are: ' + ','.join(words))
+        print('Getting CorEx results')
     if options.strategy == 3:
         count = 'fraction'
     else:
@@ -573,17 +577,17 @@ if __name__ == '__main__':
     if not options.regraph:
         for l, layer in enumerate(layers):
             if options.verbose:
-                print "Layer ", l
+                print("Layer ", l)
             if l == 0:
                 t0 = time()
                 corexes = [ct.Corex(n_hidden=layer, verbose=options.verbose, count=count).fit(X)]
-                print 'Time for first layer: %0.2f' % (time() - t0)
+                print('Time for first layer: %0.2f' % (time() - t0))
             else:
                 X_prev = np.matrix(corexes[-1].labels)
                 corexes.append(ct.Corex(n_hidden=layer, verbose=options.verbose).fit(X_prev))
         for l, corex in enumerate(corexes):
             # The learned model can be loaded again using ct.Corex().load(filename)
-            print 'TC at layer %d is: %0.3f' % (l, corex.tc)
+            print('TC at layer %d is: %0.3f' % (l, corex.tc))
             corex.save(options.output + '/layer_' + str(l) + '.dat')
     else:
         corexes = [ct.Corex().load(options.output + '/layer_' + str(l) + '.dat') for l in range(len(layers))]
