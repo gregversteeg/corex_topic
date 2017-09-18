@@ -1,7 +1,7 @@
 # Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
 
-**Contributors:** [Greg Ver Steeg](https://www.isi.edu/people/gregv/about)<sup>1</sup>, 
-[Ryan J. Gallagher](http://ryanjgallagher.github.io/)<sup>1,2</sup>, 
+**Contributors:** [Greg Ver Steeg](https://www.isi.edu/people/gregv/about),<sup>1</sup> 
+[Ryan J. Gallagher](http://ryanjgallagher.github.io/),<sup>1,2</sup> 
 [David Kale](http://www-scf.usc.edu/~dkale/)<sup>1</sup>
 
 <sup>1</sup>[Information Sciences Institute](https://www.isi.edu/), University of Southern California, 
