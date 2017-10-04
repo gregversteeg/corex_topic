@@ -20,6 +20,7 @@ from os import path
 from scipy.misc import logsumexp  # Tested with 0.13.0
 import scipy.sparse as ss
 from six import string_types # For Python 2&3 compatible string checking
+from sklearn.externals import joblib
 
 
 class Corex(object):
@@ -475,6 +476,22 @@ class Corex(object):
         # Restore words to CorEx object
         self.words = temp_words
 
+    def save_joblib(self, filename):
+        """ Serialize a class instance. E.g., corex.save('saved.dat') """
+        # Avoid saving words with object.
+        #TODO: figure out why Unicode sometimes causes an issue with loading after pickling
+        if self.words is not None:
+            temp_words = self.words
+            self.words = None
+        else:
+            temp_words = None
+        # Save CorEx object
+        if path.dirname(filename) and not path.exists(path.dirname(filename)):
+            makedirs(path.dirname(filename))
+        joblib.dump(self, filename)
+        # Restore words to CorEx object
+        self.words = temp_words
+
     def sort_and_output(self, X):
         order = np.argsort(self.tcs)[::-1]  # Order components from strongest TC to weakest
         self.tcs = self.tcs[order]  # TC for each component
@@ -554,3 +571,8 @@ def load(filename):
     """ Unpickle class instance. """
     import pickle
     return pickle.load(open(filename, 'rb'))
+
+
+def load_joblib(filename):
+    """ Load class instance. """
+    return joblib.load(filename)
