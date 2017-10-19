@@ -191,7 +191,6 @@ def output_labels(labels, row_label, prefix=''):
     f = safe_open(prefix + '/labels.txt', 'w+')
     ns, m = labels.shape
     for l in range(ns):
-        print(l)
         f.write(row_label[l] + ',' + ','.join(list(map(lambda q: '%d' % q, labels[l, :])))+ '\n')
     f.close()
 
