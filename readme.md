@@ -1,7 +1,7 @@
 # Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
 
-**Contributors:** [Greg Ver Steeg](https://www.isi.edu/people/gregv/about)<sup>1</sup>, 
-[Ryan J. Gallagher](http://ryanjgallagher.github.io/)<sup>1,2</sup>, 
+**Contributors:** [Greg Ver Steeg](https://www.isi.edu/people/gregv/about),<sup>1</sup> 
+[Ryan J. Gallagher](http://ryanjgallagher.github.io/),<sup>1,2</sup> 
 [David Kale](http://www-scf.usc.edu/~dkale/)<sup>1</sup>
 
 <sup>1</sup>[Information Sciences Institute](https://www.isi.edu/), University of Southern California, 
@@ -15,7 +15,7 @@ are maximally informative about data. This project optimizes the CorEx framework
 This code also introduces an anchoring mechanism for integrating the CorEx topic model with domain knowledge via the information bottleneck. This anchoring is flexible and allows the user to anchor multiple words to one topic, one word to multiple topics, or any other creative combination in order to uncover topics that do not naturally emerge.
 
 Detailed analysis and applications of the CorEx topic model using this code:<br>
-[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277), Gallagher et al., preprint 2017.
+[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277), Gallagher et al., forthcoming in TACL 2017.
 
 Underlying motivation and theory of CorEx:<br>
 [*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), Ver Steeg and Galstyan, NIPS 2014. <br>
@@ -85,7 +85,7 @@ vt.vis_rep(topic_model, column_label=words, prefix='topic-model-example')
 The [corex-topic-example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb) gives full details and examples on how to retrieve and interpret output from the CorEx topic model.
 
 
-## Building a Hierarchical Topic Models
+## Building Hierarchical Topic Models
 
 It is natural and straightforward to extend the CorEx topic model to a hierarchical representation.
 
