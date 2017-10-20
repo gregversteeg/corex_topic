@@ -477,9 +477,8 @@ class Corex(object):
         self.words = temp_words
 
     def save_joblib(self, filename):
-        """ Serialize a class instance. E.g., corex.save('saved.dat') """
+        """ Serialize a class instance with joblib - better for larger models. E.g., corex.save('saved.dat') """
         # Avoid saving words with object.
-        #TODO: figure out why Unicode sometimes causes an issue with loading after pickling
         if self.words is not None:
             temp_words = self.words
             self.words = None
@@ -574,5 +573,5 @@ def load(filename):
 
 
 def load_joblib(filename):
-    """ Load class instance. """
+    """ Load class instance with joblib. """
     return joblib.load(filename)
