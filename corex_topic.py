@@ -20,6 +20,7 @@ from os import path
 from scipy.misc import logsumexp  # Tested with 0.13.0
 import scipy.sparse as ss
 from six import string_types # For Python 2&3 compatible string checking
+from sklearn.externals import joblib
 
 
 class Corex(object):
@@ -291,6 +292,36 @@ class Corex(object):
         else:
             self.col_index2word = None
             self.word2col_index = None
+
+    def update_word_parameters(self, X, words):
+        """
+        updates parameters that need to be changed for each new model update
+        specifically, this re-calculates word count related parameters to be based on X,
+        where X is a batch of new data
+        """
+        self.n_samples, self.n_visible = X.shape
+        self.word_counts = np.array(
+            X.sum(axis=0)).ravel()  # 1-d array of total word occurrences. (Probably slow for CSR)
+        if np.any(self.word_counts == 0) or np.any(self.word_counts == self.n_samples):
+            print('WARNING: Some words never appear (or always appear)')
+            self.word_counts = self.word_counts.clip(0.01, self.n_samples - 0.01)
+        self.word_freq = (self.word_counts).astype(float) / self.n_samples
+        self.px_frac = (np.log1p(-self.word_freq) - np.log(self.word_freq)).reshape((-1, 1))  # nv by 1
+        self.lp0 = np.log1p(-self.word_freq).reshape((-1, 1))  # log p(x_i=0)
+        self.h_x = binary_entropy(self.word_freq)
+        if self.verbose:
+            print('word counts', self.word_counts)
+        self.words = words
+        if words is not None:
+            if len(words) != X.shape[1]:
+                print('WARNING: number of column labels != number of columns of X. Check len(words) and X.shape[1]')
+            col_index2word = {index:word for index,word in enumerate(words)}
+            word2col_index = {word:index for index,word in enumerate(words)}
+            self.col_index2word = col_index2word
+            self.word2col_index = word2col_index
+        else:
+            self.col_index2word = None
+            self.word2col_index = None
             
     def preprocess_anchors(self, anchors):
         """Preprocess anchors so that it is a list of column indices if not already"""      
@@ -332,7 +363,7 @@ class Corex(object):
         p_dot_y = X.T.dot(p_y_given_x).clip(0.01 * np.exp(log_p_y), (n_samples - 0.01) * np.exp(
             log_p_y))  # nv by ns dot ns by m -> nv by m  # TODO: Change to CSC for speed?
         lp_1g1 = np.log(p_dot_y) - np.log(n_samples) - log_p_y
-        lp_1g0 = np.log(self.word_counts[:, np.newaxis] - p_dot_y) - np.log(n_samples) - log_1mp(self.log_p_y)
+        lp_1g0 = np.log(self.word_counts[:, np.newaxis] - p_dot_y) - np.log(n_samples) - log_1mp(log_p_y)
         lp_0g0 = log_1mp(lp_1g0)
         lp_0g1 = log_1mp(lp_1g1)
         return np.array([lp_0g0, lp_0g1, lp_1g0, lp_1g1])  # 4 by nv by m
@@ -445,6 +476,21 @@ class Corex(object):
         # Restore words to CorEx object
         self.words = temp_words
 
+    def save_joblib(self, filename):
+        """ Serialize a class instance with joblib - better for larger models. E.g., corex.save('saved.dat') """
+        # Avoid saving words with object.
+        if self.words is not None:
+            temp_words = self.words
+            self.words = None
+        else:
+            temp_words = None
+        # Save CorEx object
+        if path.dirname(filename) and not path.exists(path.dirname(filename)):
+            makedirs(path.dirname(filename))
+        joblib.dump(self, filename)
+        # Restore words to CorEx object
+        self.words = temp_words
+
     def sort_and_output(self, X):
         order = np.argsort(self.tcs)[::-1]  # Order components from strongest TC to weakest
         self.tcs = self.tcs[order]  # TC for each component
@@ -524,3 +570,8 @@ def load(filename):
     """ Unpickle class instance. """
     import pickle
     return pickle.load(open(filename, 'rb'))
+
+
+def load_joblib(filename):
+    """ Load class instance with joblib. """
+    return joblib.load(filename)
