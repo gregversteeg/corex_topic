@@ -1,33 +1,18 @@
 # Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
 
-**Contributors:** [Greg Ver Steeg](https://www.isi.edu/people/gregv/about),<sup>1</sup> 
-[Ryan J. Gallagher](http://ryanjgallagher.github.io/),<sup>1,2</sup> 
-[David Kale](http://www-scf.usc.edu/~dkale/)<sup>1</sup>
+Topic modeling by way of **Cor**relation **Ex**planation (CorEx) yields rich topics that are maximally informative about a set of documents. This project optimizes the CorEx framework for sparse binary data, allowing for topic modeling over large corpora. In addition, this code supports hierarchical topic modeling, and provides a mechanism for integrating domain knowledge via anchor words and the information bottleneck. This semi-supervised anchoring is flexible and allows the user to anchor a single set of words to a single topic for topic representation, multiple sets of words to multiple topics for topic separability, a single set of words to multiple topics for topic aspects, or any other creative combination of anchoring in order to uncover topics that do not naturally emerge.  
 
-<sup>1</sup>[Information Sciences Institute](https://www.isi.edu/), University of Southern California, 
-<sup>2</sup>[Network Science Institute](https://www.networkscienceinstitute.org/), Northeastern University
+Unlike LDA, the CorEx topic model and its hierarchical and semi-supervised extensions make no assumptions on how documents are generated and, yet, it still finds coherent, meaningful topics as measured across a variety of metrics. Our TACL paper makes detailed comparisons to unsupervised and semi-supervised variants of LDA:  
 
-## Overview
+[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://www.transacl.org/ojs/index.php/tacl/article/view/1244), Gallagher et al., TACL 2017.  
 
-The principle of *Cor*-relation *Ex*-planation has recently been introduced as a way to build rich representations that
-are maximally informative about data. This project optimizes the CorEx framework for sparse binary data, so that it can be leveraged for topic modeling. Our work demonstrates CorEx finds coherent, meaningful topics that are competitive with LDA topics across a variety of metrics, despite the fact CorEx only utilizes binary counts.
+This code can be used for any sparse binary dataset. In principle, continuous values in the range zero to one can also be used as inputs but the effect of this is not well tested. 
 
-This code also introduces an anchoring mechanism for integrating the CorEx topic model with domain knowledge via the information bottleneck. This anchoring is flexible and allows the user to anchor multiple words to one topic, one word to multiple topics, or any other creative combination in order to uncover topics that do not naturally emerge.
-
-Detailed analysis and applications of the CorEx topic model using this code:<br>
-[*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://arxiv.org/abs/1611.10277), Gallagher et al., forthcoming in TACL 2017.
-
-Underlying motivation and theory of CorEx:<br>
-[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), Ver Steeg and Galstyan, NIPS 2014. <br>
-[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), Ver Steeg and Galstyan, AISTATS 2015.
-
-This code can be used for any sparse binary dataset. In principle, continuous values in the range zero to one can also be used as 
-inputs but the effect of this is not well tested. 
+## Getting Started
 
 ### Install
 
-To install, download using [this link](https://github.com/gregversteeg/corex_topic/archive/master.zip) 
-or clone the project by executing this command in your target directory:
+To install, clone the project by executing this command in your target directory:
 ```
 git clone https://github.com/gregversteeg/corex_topic.git
 ```
@@ -47,7 +32,7 @@ The visualization capabilities in vis_topic.py require other packages:
 * [graphviz](http://www.graphviz.org) (optional, for compiling produced .dot files into pretty graphs. The command line 
 tools are called from vis_topic. Graphviz should be compiled with the triangulation library for best visual results).
 
-## Running the CorEx Topic Model
+### Running the CorEx Topic Model
 
 Given a doc-word matrix, the CorEx topic model is easy to train. The code follows the scikit-learn fit/transform conventions.
 
@@ -82,12 +67,14 @@ Summary files and visualizations can be outputted from ```vis_topic.py```.
 vt.vis_rep(topic_model, column_label=words, prefix='topic-model-example')
 ```
 
-The [corex-topic-example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb) gives full details and examples on how to retrieve and interpret output from the CorEx topic model.
+Full details on how to retrieve and interpret output from the CorEx topic model are given in the [example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb).
 
 
-## Building Hierarchical Topic Models
+## Hierarchical Topic Modeling
 
-It is natural and straightforward to extend the CorEx topic model to a hierarchical representation.
+### Building a Hierarchical Topic Model
+
+For the CorEx topic model, topics are latent factors that can be expressed or not in each document. We can use these binary topic expressions as input for another layer of the CorEx topic model, yielding a hierarchical representation.
 
 ```python
 # Train the first layer
@@ -101,18 +88,23 @@ tm_layer2.fit(topic_model.labels)
 tm_layer3 = ct.Corex(n_hidden=1)
 tm_layer3.fit(tm_layer2.labels)
 ```
-Each topic explains a certain portion of the *total correlation*. These topic TCs can be accessed through the ```tcs``` attribute, and the overall TC (the sum of the topic TCs) can be accessed through ```tc```. To assess how many topics to choose at each layer, you may look at the distribution of ```tcs``` for each layer. As a rule of thumb, additional latent topics should be added until additional topics contribute little (less than 1%) to the overall TC.
 
-Visualizations of the hierarchical topic model can be accessed through ```vis_topic.py``` if you have graphviz installed.
+Visualizations of the hierarchical topic model can be accessed through ```vis_topic.py```.
 
 ```python
 vt.vis_hierarchy([topic_model, tm_layer2, tm_layer3], column_label=words, max_edges=300, prefix='topic-model-example')
 ```
 
+### Choosing the Number of Topics
+
+There is a principled way for choosing the number of topics within each layer of the topic model. Each topic explains a certain portion of the *total correlation* (TC). These topic TCs can be accessed through the ```tcs``` attribute, and the overall TC (the sum of the topic TCs) can be accessed through ```tc```. To assess how many topics to choose at each layer, you may look at the distribution of ```tcs``` for each layer. As a rule of thumb, additional latent topics should be added until additional topics contribute little to the overall TC.
+
 To get better topic results, you can restart the CorEx topic model several times from different initializations, and choose the topic model that has the highest TC (explains the most information about the documents).
 
 
-## Anchoring for Semi-Supervised Topic Modeling
+## Semi-Supervised Topic Modeling
+
+### Using Anchor Words
 
 Anchored CorEx allows a user to anchor words to topics in a semi-supervised fashion to uncover otherwise elusive topics. If ```words``` is initialized, anchoring is effortless:
 
@@ -120,15 +112,45 @@ Anchored CorEx allows a user to anchor words to topics in a semi-supervised fash
 topic_model.fit(X, words=words, anchors=[['dog','cat'], 'apple'], anchor_strength=2)
 ```
 
-This anchors "dog" and "cat" to the first topic, and "apple" to the second topic. As a rule of thumb ```anchor_strength``` should always be set above 1, where setting ```anchor_strength``` between 1 and 3 gently nudges a topic towards the anchor words, and setting it above 5 more strongly encourages the topic towards the anchor words. We encourage users to experiment with ```anchor_strength``` for their own purposes.
+This anchors "dog" and "cat" to the first topic, and "apple" to the second topic. As a rule of thumb ```anchor_strength``` should always be set above 1, where setting ```anchor_strength``` between 1 and 3 gently nudges a topic towards the anchor words, and setting it above 5 more strongly encourages the topic towards the anchor words. We encourage users to experiment with ```anchor_strength``` for their own purposes.  
 
-One word can be anchored to multiple topics, multiple words anchored to one topic, or any other combination of anchoring strategies. The [corex-topic-example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb) details several strategies for anchoring.
+If ```words``` is not initialized, you may anchor by specifying the integer column feature indices that you wish to anchor on. For example,
 
-If ```words``` is not initialized, you may anchor by specifying the integer column feature indices that you wish to anchor on.
+```python
+topic_model.fit(X, words=words, anchors=[[0, 2], 1], anchor_strength=2)
+```
+
+anchors the features of columns 0 and 2 to the first topic, and feature 1 to the second topic.
+
+### Anchoring Strategies
+
+In our TACL paper, we explore several anchoring strategies:
+
+1. *Anchoring a single set of words to a single topic*. This can help promote a topic that did not naturally emerge when running an unsupervised instance of the CorEx topic model. For example, one might anchor words like "snow," "cold," and "avalanche" to a topic if one suspects there should be a snow avalanche topic within a set of disaster relief articles.
+
+```python
+topic_model.fit(X, words=words, anchors=[['snow','cold', 'avalanche']], anchor_strength=4)
+```
+
+2. *Anchoring single sets of words to multiple topics*. This can help find different aspects of a topic that may be discussed in several different contexts. For example, one might anchor "protest" to three topics and "riot" to three other topics to understand different framings that arise from tweets about political protests.
+
+```python
+topic_model.fit(X, words=words, anchors=['protest', 'protest', 'protest', 'riot', 'riot', 'riot'], anchor_strength=2)
+```
+
+3. *Anchoring different sets of words to multiple topics.* This can help enforce topic separability if there appear to be chimera topics. For example, one might anchor "mountain," "Bernese," and "dog" to one topic and "mountain," "rocky," and "colorado" to another topic to help separate topics that merge discussion of Bernese Mountain Dogs and the Rocky Mountains.
+
+```python
+topic_model.fit(X, words=words, anchors=[['bernese', 'mountain', 'dog'], ['mountain', 'rocky', 'colorado'], anchor_strength=2)
+```
+
+The [example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb) details other examples of using anchored CorEx. We encourage domain experts to experiment with other anchoring strategies that suit their needs.
 
 
 
 ## Technical notes
+
+### Binarization of Documents
 
 For speed reasons, this version of the CorEx topic model works only on binary data and produces binary latent factors. Despite this limitation, our work demonstrates CorEx produces coherent topics that are as good as or better than those produced by LDA for short to medium length documents. However, you may wish to consider additional preprocessing for working with longer documents. We have several strategies for handling text data. 
  
@@ -144,4 +166,21 @@ For speed reasons, this version of the CorEx topic model works only on binary da
                         
 For the python API, for 1 and 2, you can use the functions in ```vis_topic.py``` to process data or do the same yourself. Naive binarization is specified through the python api with count='binarize' and fractional counts with count='fraction'. While fractional counts may be work theoretically, their usage in the CorEx topic model has not be adequately tested.
 
-Also note that also for speed reasons, the CorEx topic model enforces single membership of words in topics.
+### Single Membership of Words in Topics
+
+Also for speed reasons, the CorEx topic model enforces single membership of words in topics. If a user anchors a word to multiple topics, the single membership can be overriden. Going forward, we plan to develop a multi-membership extension of the CorEx topic model that retains the computational efficiency.
+
+
+## Additional Details
+**Contributors:** <br>
+[Greg Ver Steeg](https://www.isi.edu/people/gregv/about),<sup>1</sup> 
+[Ryan J. Gallagher](http://ryanjgallagher.github.io/),<sup>1,2</sup> 
+[David Kale](http://www-scf.usc.edu/~dkale/),<sup>1</sup>
+Lily Fierro<sup>1</sup>
+
+<sup>1</sup>[Information Sciences Institute](https://www.isi.edu/), University of Southern California,  
+<sup>2</sup>[Network Science Institute](https://www.networkscienceinstitute.org/), Northeastern University
+
+**Underlying motivation and theory of CorEx:**<br>
+[*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), Ver Steeg and Galstyan, NIPS 2014. <br>
+[*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), Ver Steeg and Galstyan, AISTATS 2015.
