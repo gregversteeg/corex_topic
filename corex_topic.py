@@ -1,15 +1,20 @@
 """CorEx Hierarchical Topic Models
 
-Use the principle of Total Cor-relation Explanation (CorEx) to construct hierarchical topic models.
-This module is specially designed for sparse count data.
+Use the principle of Total Cor-relation Explanation (CorEx) to construct
+hierarchical topic models. This module is specially designed for sparse count
+data and implements semi-supervision via the information bottleneck.
 
-Greg Ver Steeg and Aram Galstyan. "Maximally Informative
-Hierarchical Representations of High-Dimensional Data"
-AISTATS, 2015. arXiv preprint arXiv:1410.7404.
+Greg Ver Steeg and Aram Galstyan. "Maximally Informative Hierarchical
+Representations of High-Dimensional Data." AISTATS, 2015.
+
+Gallagher et al. "Anchored Correlation Explanation: Topic Modeling with Minimal
+Domain Knowledge." TACL, 2017.
 
 Code below written by:
-Greg Ver Steeg (gregv@isi.edu), 2015.
-Ryan J. Gallagher (gallagher.r@husky.neu.edu)
+Greg Ver Steeg (gregv@isi.edu)
+Ryan J. Gallagher
+David Kale
+Lily Fierro
 
 License: Apache V2
 """
@@ -76,7 +81,7 @@ class Corex(object):
 
     tc_history : array
         Shows value of TC over the course of learning. Hopefully, it is converging.
-        
+
     words : list of strings
         Feature names that label the corresponding columns of X
 
@@ -156,7 +161,7 @@ class Corex(object):
         anchors : A list of variables anchor each corresponding latent factor to.
 
         anchor_strength : How strongly to weight the anchors.
-        
+
         words : list of strings that label the corresponding columns of X
 
         Returns
@@ -257,7 +262,7 @@ class Corex(object):
                 doc_length = ss.diags(1. / length, 0)
                 # max_counts = ss.diags(1. / X.max(axis=1).A.ravel(), 0)
                 X = doc_length * X * bg_rate
-                X.data = np.clip(X.data, 0, 1)  # np.log(X.data) / (np.log(X.data) + 1)                    
+                X.data = np.clip(X.data, 0, 1)  # np.log(X.data) / (np.log(X.data) + 1)
         return X
 
     def initialize_parameters(self, X, words):
@@ -322,9 +327,9 @@ class Corex(object):
         else:
             self.col_index2word = None
             self.word2col_index = None
-            
+
     def preprocess_anchors(self, anchors):
-        """Preprocess anchors so that it is a list of column indices if not already"""      
+        """Preprocess anchors so that it is a list of column indices if not already"""
         if anchors is not None:
             for n, anchor_list in enumerate(anchors):
                 # Check if list of anchors or a single str or int anchor
@@ -332,7 +337,7 @@ class Corex(object):
                     anchor_list = [anchor_list]
                 # Convert list of anchors to list of anchor indices
                 new_anchor_list = []
-                for anchor in anchor_list:    
+                for anchor in anchor_list:
                     # Turn string anchors into index anchors
                     if isinstance(anchor, string_types):
                         if self.words is not None:
@@ -349,9 +354,9 @@ class Corex(object):
                     anchors[n] = new_anchor_list[0]
                 else:
                     anchors[n] = new_anchor_list
-        
+
         return anchors
-                
+
     def calculate_p_y(self, p_y_given_x):
         """Estimate log p(y_j=1)."""
         return np.log(np.mean(p_y_given_x, axis=0))  # n_hidden, log p(y_j=1)
@@ -461,7 +466,7 @@ class Corex(object):
 
     def save(self, filename):
         """ Pickle a class instance. E.g., corex.save('saved.dat') """
-        # Avoid saving words with object. 
+        # Avoid saving words with object.
         #TODO: figure out why Unicode sometimes causes an issue with loading after pickling
         if self.words is not None:
             temp_words = self.words
@@ -503,13 +508,13 @@ class Corex(object):
         p_y = np.exp(log_p_y).reshape((-1, 1))  # size n_hidden, 1
         mis = self.h_x - p_y * binary_entropy(np.exp(theta[3]).T) - (1 - p_y) * binary_entropy(np.exp(theta[2]).T)
         return (mis - 1. / (2. * self.n_samples)).clip(0.)  # P-T bias correction
-        
+
     def get_topics(self, n_words=10, topic=None, print_words=True):
         """
         Return list of lists of tuples. Each list consists of the top words for a topic
         and each tuple is a pair (word, mutual information). If 'words' was not provided
         to CorEx, then 'word' will be an integer column index of X
-        
+
         topic_n : integer specifying which topic to get (0-indexed)
         print_words : True or False, get_topics will attempt to print topics using
                       provided column labels (through 'words') if possible. Otherwise,
@@ -527,14 +532,14 @@ class Corex(object):
         elif len(self.words) != self.alpha.shape[1]:
             print_words = False
             print('WARNING: number of column labels != number of columns of X. Cannot reliably add labels to topics. Check len(words) and X.shape[1]')
-        
+
         topics = [] # TODO: make this faster, it's slower than it should be
         for n in topic_ns:
             # Get indices of which words belong to the topic
             inds = np.where(self.alpha[n] >= 1.)[0]
             # Sort topic words according to mutual information
             inds = inds[np.argsort(-self.alpha[n,inds] * self.mis[n,inds])]
-            # Create topic to return   
+            # Create topic to return
             if print_words is True:
                 topic = [(self.col_index2word[ind], self.sign[n,ind]*self.mis[n,ind]) for ind in inds[:n_words]]
             else:
@@ -543,9 +548,19 @@ class Corex(object):
             if len(topic_ns) != 1:
                 topics.append(topic)
             else:
-                return topic 
-        
+                return topic
+
         return topics
+
+    def set_words(self, words):
+        self.words = words
+        if words is not None:
+            if len(words) != self.alpha.shape[1]:
+                print('WARNING: number of column labels != number of columns of X. Check len(words) and X.shape[1]')
+            col_index2word = {index:word for index,word in enumerate(words)}
+            word2col_index = {word:index for index,word in enumerate(words)}
+            self.col_index2word = col_index2word
+            self.word2col_index = word2col_index
 
 
 def log_1mp(x):
