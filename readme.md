@@ -1,8 +1,8 @@
 # Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
 
-Topic modeling by way of **Cor**relation **Ex**planation (CorEx) yields rich topics that are maximally informative about a set of documents. This project optimizes the CorEx framework for sparse binary data, allowing for topic modeling over large corpora. In addition, this code supports hierarchical topic modeling, and provides a mechanism for integrating domain knowledge via anchor words and the information bottleneck. This semi-supervised anchoring is flexible and allows the user to anchor a single set of words to a single topic for topic representation, multiple sets of words to multiple topics for topic separability, a single set of words to multiple topics for topic aspects, or any other creative combination of anchoring in order to uncover topics that do not naturally emerge.  
+Topic modeling by way of **Cor**relation **Ex**planation (CorEx) yields rich topics that are maximally informative about a set of data. This project optimizes the CorEx framework for sparse binary data, allowing for topic modeling over large corpora. In addition, this code supports hierarchical topic modeling, and provides a mechanism for integrating domain knowledge via anchor words and the information bottleneck. This semi-supervised anchoring is flexible and allows the user to anchor words through creative strategies that promote topic representation, separability, and aspects.
 
-Unlike LDA, the CorEx topic model and its hierarchical and semi-supervised extensions make no assumptions on how documents are generated and, yet, it still finds coherent, meaningful topics as measured across a variety of metrics. Our TACL paper makes detailed comparisons to unsupervised and semi-supervised variants of LDA:  
+Unlike LDA, the CorEx topic model and its hierarchical and semi-supervised extensions make no assumptions on how documents are generated and, yet, still finds coherent, meaningful topics as measured across a variety of metrics. Our TACL paper makes detailed comparisons to unsupervised and semi-supervised variants of LDA:  
 
 [*Anchored Correlation Explanation: Topic Modeling with Minimal Domain Knowledge*](https://www.transacl.org/ojs/index.php/tacl/article/view/1244), Gallagher et al., TACL 2017.  
 
@@ -37,9 +37,10 @@ tools are called from vis_topic. Graphviz should be compiled with the triangulat
 Given a doc-word matrix, the CorEx topic model is easy to train. The code follows the scikit-learn fit/transform conventions.
 
 ```python
+import numpy as np
+import scipy.sparse as ss
 import corex_topic as ct
 import vis_topic as vt
-import scipy.sparse as ss
 
 # Define a matrix where rows are samples (docs) and columns are features (words)
 X = np.array([[0,0,0,1,1],
@@ -129,7 +130,7 @@ In our TACL paper, we explore several anchoring strategies:
 1. *Anchoring a single set of words to a single topic*. This can help promote a topic that did not naturally emerge when running an unsupervised instance of the CorEx topic model. For example, one might anchor words like "snow," "cold," and "avalanche" to a topic if one suspects there should be a snow avalanche topic within a set of disaster relief articles.
 
 ```python
-topic_model.fit(X, words=words, anchors=[['snow','cold', 'avalanche']], anchor_strength=4)
+topic_model.fit(X, words=words, anchors=[['snow', 'cold', 'avalanche']], anchor_strength=4)
 ```
 
 2. *Anchoring single sets of words to multiple topics*. This can help find different aspects of a topic that may be discussed in several different contexts. For example, one might anchor "protest" to three topics and "riot" to three other topics to understand different framings that arise from tweets about political protests.
@@ -172,7 +173,9 @@ Also for speed reasons, the CorEx topic model enforces single membership of word
 
 
 ## Additional Details
-**Contributors:** <br>
+
+### Contributors
+
 [Greg Ver Steeg](https://www.isi.edu/people/gregv/about),<sup>1</sup> 
 [Ryan J. Gallagher](http://ryanjgallagher.github.io/),<sup>1,2</sup> 
 [David Kale](http://www-scf.usc.edu/~dkale/),<sup>1</sup>
@@ -181,6 +184,6 @@ Lily Fierro<sup>1</sup>
 <sup>1</sup>[Information Sciences Institute](https://www.isi.edu/), University of Southern California,  
 <sup>2</sup>[Network Science Institute](https://www.networkscienceinstitute.org/), Northeastern University
 
-**Underlying motivation and theory of CorEx:**<br>
+### Underlying Theory and Motivation of CorEx
 [*Discovering Structure in High-Dimensional Data Through Correlation Explanation*](http://arxiv.org/abs/1406.1222), Ver Steeg and Galstyan, NIPS 2014. <br>
 [*Maximally Informative Hierarchical Representions of High-Dimensional Data*](http://arxiv.org/abs/1410.7404), Ver Steeg and Galstyan, AISTATS 2015.
