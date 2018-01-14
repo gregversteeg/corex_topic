@@ -308,7 +308,7 @@ class Corex(object):
             row_index2doc = {index:doc for index,doc in enumerate(docs)}
             self.row_index2doc = row_index2doc
         else:
-            self.row_index2doc = Nones
+            self.row_index2doc = None
 
     def update_word_parameters(self, X, words):
         """
@@ -571,7 +571,7 @@ class Corex(object):
         provided to CorEx, then each doc will be an integer row index of X
 
         topic_n : integer specifying which topic to get (0-indexed)
-        sort_by: 'prob' or 'tc', use either 'log_p_y_given_x' or 'log_z' respectively
+        sort_by: 'log_prob' or 'tc', use either 'log_p_y_given_x' or 'log_z' respectively
                  to return top docs per each topic
         print_docs : boolean, get_top_docs will attempt to print topics using
                      provided row labels (through 'docs') if possible. Otherwise,
