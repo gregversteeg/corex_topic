@@ -72,7 +72,7 @@ vt.vis_rep(topic_model, column_label=words, prefix='topic-model-example')
 
 The visualizations utilize ```seaborn```, and [```graphviz```](http://www.graphviz.org) is used for plotting hierarchical topic models. Graphviz should be compiled with the triangulation library for the best visual results).
 
-Full details on how to retrieve and interpret output from the CorEx topic model are given in the [example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb).
+Full details on how to retrieve and interpret output from the CorEx topic model are given in the [example notebook](https://github.com/gregversteeg/corex_topic/blob/master/corextopic/example/corex-topic-example.ipynb).
 
 
 ## Hierarchical Topic Modeling
@@ -149,7 +149,7 @@ topic_model.fit(X, words=words, anchors=['protest', 'protest', 'protest', 'riot'
 topic_model.fit(X, words=words, anchors=[['bernese', 'mountain', 'dog'], ['mountain', 'rocky', 'colorado'], anchor_strength=2)
 ```
 
-The [example notebook](https://github.com/gregversteeg/corex_topic/blob/master/examples/corex-topic-example.ipynb) details other examples of using anchored CorEx. We encourage domain experts to experiment with other anchoring strategies that suit their needs.
+The [example notebook](https://github.com/gregversteeg/corex_topic/blob/master/corextopic/example/corex-topic-example.ipynb) details other examples of using anchored CorEx. We encourage domain experts to experiment with other anchoring strategies that suit their needs.
 
 Note, when running unsupervised CorEx, the topics are returned and sorted according to how much total correlation they each explain. When running anchored CorEx, the topics are not sorted by total correlation, and the first *n* topics will correspond to the *n* anchored topics in the order given by the model input.
 
