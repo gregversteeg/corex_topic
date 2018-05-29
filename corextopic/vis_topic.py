@@ -13,7 +13,7 @@ import textwrap
 import scipy.sparse as ss
 import sklearn.feature_extraction.text as skt
 #import cPickle, pickle # neither module is used, and cPickle is not part of Anaconda build, so commented for LF run
-import corex_topic as ct
+import corextopic as ct
 import sys, traceback
 from time import time
 import re
