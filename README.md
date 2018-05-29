@@ -70,7 +70,7 @@ from corextopic import vis_topic as vt
 vt.vis_rep(topic_model, column_label=words, prefix='topic-model-example')
 ```
 
-The visualizations utilize ```seaborn```, and [```graphviz```](http://www.graphviz.org) is used for plotting hierarchical topic models. Graphviz should be compiled with the triangulation library for the best visual results).
+The visualizations utilize ```seaborn```, and [```graphviz```](http://www.graphviz.org) is used for plotting hierarchical topic models. Graphviz should be compiled with the triangulation library for the best visual results.
 
 Full details on how to retrieve and interpret output from the CorEx topic model are given in the [example notebook](https://github.com/gregversteeg/corex_topic/blob/master/corextopic/example/corex-topic-example.ipynb).
 
