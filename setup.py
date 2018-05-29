@@ -5,7 +5,7 @@ with open('README.md', 'r') as f:
 
 setuptools.setup(
 	name='corextopic',
-	version='1.0.0',
+	version='1.0.2',
 	author='Greg Ver Steeg/Ryan J. Gallagher',
 	author_email='gregv@isi.edu',
 	keywords=['topic model', 'corex', 'anchored corex', 'LDA', 'semi-supervised', 'hierarchical topic model', 'information theory'],
