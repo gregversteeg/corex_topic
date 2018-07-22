@@ -53,7 +53,7 @@ for topic_n,topic in enumerate(topics):
     print(topic_str)
 ```
 
-Similarly, the most probable documents for each topic can be accessed through the ```get_top_docs()`` function.
+Similarly, the most probable documents for each topic can be accessed through the ``get_top_docs()`` function.
 
 ```python
 top_docs = topic_model.get_top_docs()
