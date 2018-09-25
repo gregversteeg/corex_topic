@@ -476,15 +476,22 @@ class Corex(object):
         self_dict = self.__dict__.copy()
         return self_dict
 
-    def save(self, filename):
-        """ Pickle a class instance. E.g., corex.save('saved.dat') """
+    def save(self, filename, ensure_compatibility = True):
+        """ 
+        Pickle a class instance. E.g., corex.save('saved.pkl') 
+        When set to True, ensure_compatibility resets self.words before saving
+        a pickle to avoid Unicode loading issues usually seen when trying to load
+        the pickle from a Python 2 implementation.
+        It is recommended to set it to False if you know you are going to load the
+        model in an all Python 3 implementation as self.words is required for fetching 
+        the topics via get_topics().
+        """
         # Avoid saving words with object.
         #TODO: figure out why Unicode sometimes causes an issue with loading after pickling
-        if self.words is not None:
-            temp_words = self.words
+        temp_words = self.words
+        if ensure_compatibility and (self.words is not None):
             self.words = None
-        else:
-            temp_words = None
+        
         # Save CorEx object
         import pickle
         if path.dirname(filename) and not path.exists(path.dirname(filename)):
