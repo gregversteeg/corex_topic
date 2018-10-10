@@ -143,14 +143,14 @@ class Corex(object):
         """
         return np.sum(self.tcs)
 
-    def fit(self, X, anchors=None, anchor_strength=1, words=None, docs=None):
+    def fit(self, X, y=None, anchors=None, anchor_strength=1, words=None, docs=None):
         """
         Fit CorEx on the data X. See fit_transform.
         """
         self.fit_transform(X, anchors=anchors, anchor_strength=anchor_strength, words=words, docs=docs)
         return self
 
-    def fit_transform(self, X, anchors=None, anchor_strength=1, words=None, docs=None):
+    def fit_transform(self, X, y=None, anchors=None, anchor_strength=1, words=None, docs=None):
         """Fit CorEx on the data
 
         Parameters
