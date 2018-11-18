@@ -53,8 +53,6 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_
     mis = corexes[0].mis
     l1_labels = []
     annotate = lambda q, s: q if s > 0 else '~' + q
-
-    print('n_hidden->',corexes[0].n_hidden)
     for j in range(corexes[0].n_hidden):
         # inds = np.where(alpha[j] * mis[j] > 0)[0]
         inds = np.where(alpha[j] >= 1.)[0]
@@ -606,4 +604,3 @@ if __name__ == '__main__':
     # This line outputs a hierarchical networks structure in a .dot file in the "graphs" folder
     # And it tries to compile the dot file into a pdf using the command line utility sfdp (part of graphviz)
     vis_hierarchy(corexes, column_label=words, max_edges=options.max_edges, prefix=options.output)
-
