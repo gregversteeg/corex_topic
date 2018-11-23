@@ -57,8 +57,8 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_
         # inds = np.where(alpha[j] * mis[j] > 0)[0]
         inds = np.where(alpha[j] >= 1.)[0]
         inds = inds[np.argsort(-alpha[j, inds] * mis[j, inds])]
-        group_number = u"red_" + unicode(j) if j < n_anchors else unicode(j)
-        label = group_number + u':' + u' '.join([annotate(column_label[ind], corexes[0].sign[j,ind]) for ind in inds[:6]])
+        group_number = str('red_') + str(j) if j < n_anchors else str(j)
+        label = group_number + ':' + ' '.join([annotate(column_label[ind], corexes[0].sign[j,ind]) for ind in inds[:6]])
         label = textwrap.fill(label, width=25)
         l1_labels.append(label)
 
@@ -79,7 +79,8 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_
     # Output JSON files
     try:
         import os
-        copyfile(os.path.dirname(os.path.realpath(__file__)) + '/tests/d3_files/force.html', prefix + '/graphs/force.html')
+        #copyfile(os.path.dirname(os.path.realpath(__file__)) + '/tests/d3_files/force.html', prefix + '/graphs/force.html')
+        copyfile(os.path.dirname(os.path.realpath('tests')) + '/tests/d3_files/force.html', prefix + '/graphs/force.html')
     except:
         print("Couldn't find 'force.html' file for visualizing d3 output")
     import json
@@ -156,7 +157,8 @@ def trim(g, max_parents=False, max_children=False):
     for node in g:
         if max_parents:
             parents = list(g.successors(node))
-            weights = [g.edge[node][parent]['weight'] for parent in parents]
+            #weights = [g.edge[node][parent]['weight'] for parent in parents]
+            weights = [g.adj[node][parent]['weight'] for parent in parents]
             for weak_parent in np.argsort(weights)[:-max_parents]:
                 g.remove_edge(node, parents[weak_parent])
         if max_children:
@@ -290,42 +292,46 @@ def edge2pdf(g, filename, threshold=0, position=None, labels=None, connected=Tru
     def cnn(node):
         #change node names for dot format
         if type(node) is tuple or type(node) is list:
-            return u'n' + u'_'.join(list(map(unicode, node)))
+            #return u'n' + u'_'.join(list(map(unicode, node)))
+            return u'n' + u'_'.join(list(map(str, node)))
         else:
-            return unicode(node)
+            return node
 
     if connected:
         touching = list(set(sum([[a, b] for a, b in g.edges()], [])))
         g = nx.subgraph(g, touching)
         print('non-isolated nodes,edges', len(list(g.nodes())), len(list(g.edges())))
     f = safe_open(filename + '.dot', 'w+')
+    #print('f1->',f)
+    #print('directed->',directed)
     if directed:
-        f.write("strict digraph {\n".encode('utf-8'))
+        f.write("strict digraph {\n")#.decode("utf-8")
+        #f.write('strict digraph {')
     else:
-        f.write("strict graph {\n".encode('utf-8'))
+        f.write("strict graph {")
     #f.write("\tgraph [overlap=scale];\n".encode('utf-8'))
-    f.write("\tnode [shape=point];\n".encode('utf-8'))
+    f.write("\tnode [shape=point];\n")
     for a, b, d in g.edges(data=True):
-        if d.has_key('weight'):
+        if 'weight' in d:
             if directed:
                 f.write(("\t" + cnn(a) + ' -> ' + cnn(b) + ' [penwidth=%.2f' % float(
-                    np.clip(d['weight'], 0, 9)) + '];\n').encode('utf-8'))
+                    np.clip(d['weight'], 0, 9)) + '];\n'))
             else:
                 if d['weight'] > threshold:
-                    f.write(("\t" + cnn(a) + ' -- ' + cnn(b) + ' [penwidth=' + str(3 * d['weight']) + '];\n').encode(
-                        'utf-8'))
+                    f.write(("\t" + cnn(a) + ' -- ' + cnn(b) + ' [penwidth=' + str(3 * d['weight']) + '];\n'))
         else:
             if directed:
-                f.write(("\t" + cnn(a) + ' -> ' + cnn(b) + ';\n').encode('utf-8'))
+                f.write(("\t" + cnn(a) + ' -> ' + cnn(b) + ';\n'))
             else:
-                f.write(("\t" + cnn(a) + ' -- ' + cnn(b) + ';\n').encode('utf-8'))
+                f.write(("\t" + cnn(a) + ' -- ' + cnn(b) + ';\n'))
     for n in g.nodes():
         if labels is not None:
             if type(labels) == dict or type(labels) == list:
                 thislabel = labels[n].replace(u'"', u'\\"')
                 lstring = u'label="' + thislabel + u'",shape=none'
             elif type(labels) == str:
-                if g.node[n].has_key('label'):
+                #if g.node[n].has_key('label'):
+                if 'label' in g.node[n]:
                     thislabel = g.node[n][labels].replace(u'"', u'\\"')
                     # combine dupes
                     #llist = thislabel.split(',')
@@ -341,7 +347,7 @@ def edge2pdf(g, filename, threshold=0, position=None, labels=None, connected=Tru
                         lstring = u'shape=point,height=%0.2f' % weight
             else:
                 lstring = 'label="' + str(n) + '",shape=none'
-            lstring = unicode(lstring)
+            lstring = str(lstring)
         else:
             lstring = False
         if position is not None:
@@ -353,7 +359,7 @@ def edge2pdf(g, filename, threshold=0, position=None, labels=None, connected=Tru
         finalstring = u' [' + u','.join([ts for ts in [posstring, lstring] if ts]) + u']\n'
         #finalstring = u' ['+lstring+u']\n'
         f.write(u'\t' + cnn(n) + finalstring)
-    f.write("}".encode('utf-8'))
+    f.write("}")
     f.close()
     if makepdf:
         neato(filename, position=position, directed=directed)
