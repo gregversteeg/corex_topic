@@ -343,6 +343,7 @@ class Corex(object):
     def preprocess_anchors(self, anchors):
         """Preprocess anchors so that it is a list of column indices if not already"""
         if anchors is not None:
+            processed_anchors = list()
             for n, anchor_list in enumerate(anchors):
                 # Check if list of anchors or a single str or int anchor
                 if type(anchor_list) is not list:
@@ -356,19 +357,21 @@ class Corex(object):
                             if anchor in self.word2col_index:
                                 new_anchor_list.append(self.word2col_index[anchor])
                             else:
-                                w = 'Anchor word not in word column labels provided to CorEx: {}'.format(anchor)
-                                warnings.warn(w)
+                                w = 'WARNING: Anchor word not in word column labels provided to CorEx: {}'.format(anchor)
+                                print(w)
                         else:
                                 raise NameError("Provided non-index anchors to CorEx without also providing 'words'")
                     else:
                         new_anchor_list.append(anchor)
                 # Update anchors with new anchor list
+                if len(new_anchor_list) == 0:
+                    continue
                 if len(new_anchor_list) == 1:
-                    anchors[n] = new_anchor_list[0]
+                    processed_anchors.append(new_anchor_list[0])
                 else:
-                    anchors[n] = new_anchor_list
+                    processed_anchors.append(new_anchor_list)
 
-        return anchors
+        return processed_anchors
 
     def calculate_p_y(self, p_y_given_x):
         """Estimate log p(y_j=1)."""
@@ -478,13 +481,13 @@ class Corex(object):
         return self_dict
 
     def save(self, filename, ensure_compatibility = True):
-        """ 
-        Pickle a class instance. E.g., corex.save('saved.pkl') 
+        """
+        Pickle a class instance. E.g., corex.save('saved.pkl')
         When set to True, ensure_compatibility resets self.words before saving
         a pickle to avoid Unicode loading issues usually seen when trying to load
         the pickle from a Python 2 implementation.
         It is recommended to set it to False if you know you are going to load the
-        model in an all Python 3 implementation as self.words is required for fetching 
+        model in an all Python 3 implementation as self.words is required for fetching
         the topics via get_topics().
         """
         # Avoid saving words with object.
@@ -492,7 +495,7 @@ class Corex(object):
         temp_words = self.words
         if ensure_compatibility and (self.words is not None):
             self.words = None
-        
+
         # Save CorEx object
         import pickle
         if path.dirname(filename) and not path.exists(path.dirname(filename)):
