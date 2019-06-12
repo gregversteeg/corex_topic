@@ -18,7 +18,7 @@ Lily Fierro
 
 License: Apache V2
 """
-
+import warnings
 import numpy as np  # Tested with 1.8.0
 from os import makedirs
 from os import path
@@ -356,7 +356,8 @@ class Corex(object):
                             if anchor in self.word2col_index:
                                 new_anchor_list.append(self.word2col_index[anchor])
                             else:
-                                raise KeyError('Anchor word not in word column labels provided to CorEx: {}'.format(anchor))
+                                w = 'Anchor word not in word column labels provided to CorEx: {}'.format(anchor)
+                                warnings.warn(w)
                         else:
                                 raise NameError("Provided non-index anchors to CorEx without also providing 'words'")
                     else:
