@@ -28,7 +28,7 @@ except ImportError:
     from scipy.misc import logsumexp  # Tested with 0.13.0
 import scipy.sparse as ss
 from six import string_types # For Python 2&3 compatible string checking
-from sklearn.externals import joblib
+import joblib
 
 
 class Corex(object):
