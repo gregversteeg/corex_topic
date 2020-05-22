@@ -198,8 +198,18 @@ class Corex(object):
             if anchors is not None:
                 for a in flatten(anchors):
                     self.alpha[:, a] = 0
-                for ia, a in enumerate(anchors):
-                    self.alpha[ia, a] = anchor_strength
+                if type(anchor_strength) != list:
+                    for ia, a in enumerate(anchors):
+                        self.alpha[ia, a] = anchor_strength
+                else:
+                    assert len(anchors) == len(anchor_strength), 'Number of topics and number of anchor strengths do not match'
+                    for ia, (a, a_s) in enumerate(zip(anchors, anchor_strength)):
+                        if type(a_s) == list:
+                            if len(a_s) == 1:
+                                a_s = a_s[0]
+                            else:
+                                assert len(a_s) == len(a), 'Number of anchor strengths does not match number of seeds for topic number ' + str(ia + 1) 
+                        self.alpha[ia, a] = a_s
 
             p_y_given_x, _, log_z = self.calculate_latent(X, self.theta)
 
