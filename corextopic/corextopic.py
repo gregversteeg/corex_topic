@@ -503,7 +503,10 @@ class Corex(object):
         import pickle
         if path.dirname(filename) and not path.exists(path.dirname(filename)):
             makedirs(path.dirname(filename))
-        pickle.dump(self, open(filename, 'wb'), protocol=-1)
+
+        with open(filename, "wb") as fp:
+            pickle.dump(self, fp, protocol=-1)
+
         # Restore words to CorEx object
         self.words = temp_words
 
@@ -668,7 +671,8 @@ def flatten(a):
 def load(filename):
     """ Unpickle class instance. """
     import pickle
-    return pickle.load(open(filename, 'rb'))
+    with open(filename, 'rb') as fp:
+        return pickle.load(fp)
 
 
 def load_joblib(filename):
