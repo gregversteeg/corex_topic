@@ -18,17 +18,17 @@ Lily Fierro
 
 License: Apache V2
 """
-import warnings
+from os import makedirs, path
+
+import joblib
 import numpy as np  # Tested with 1.8.0
-from os import makedirs
-from os import path
+import scipy.sparse as ss
+from six import string_types  # For Python 2&3 compatible string checking
+
 try:
     from scipy.special import logsumexp
 except ImportError:
     from scipy.misc import logsumexp  # Tested with 0.13.0
-import scipy.sparse as ss
-from six import string_types # For Python 2&3 compatible string checking
-import joblib
 
 
 class Corex(object):
