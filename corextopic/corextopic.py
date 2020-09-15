@@ -604,8 +604,8 @@ class Corex(object):
             print_docs = False
             print("NOTE: 'docs' not provided to CorEx. Returning top docs as lists of row indices")
         elif len(self.docs) != self.labels.shape[0]:
-            print_words = False
             print('WARNING: number of row labels != number of rows of X. Cannot reliably add labels. Check len(docs) and X.shape[0]. Use .set_docs() to fix')
+            print_docs = False
         # Get appropriate matrix to sort
         if sort_by == 'log_prob':
             doc_values = self.log_p_y_given_x
