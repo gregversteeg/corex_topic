@@ -86,7 +86,7 @@ def vis_hierarchy(corexes, column_label=None, max_edges=100, prefix='topics', n_
     import json
     from networkx.readwrite import json_graph
 
-    mapping = dict([(n, tree.node[n].get('label', str(n))) for n in tree.nodes()])
+    mapping = dict([(n, tree._node[n].get('label', str(n))) for n in tree.nodes()])
     tree = nx.relabel_nodes(tree, mapping)
     json.dump(json_graph.node_link_data(tree), safe_open(prefix + '/graphs/force.json', 'w+'))
     json.dump(json_graph.node_link_data(h), safe_open(prefix + '/graphs/force_nontree.json', 'w+'))
@@ -136,7 +136,7 @@ def make_graph(weights, node_weights, column_label, max_edges=100):
         m, n = weight.shape
         for j in range(m):
             g.add_node((layer + 1, j))
-            g.node[(layer + 1, j)]['weight'] = 0.3 * node_weights[layer][j] / max_node_weight
+            g._node[(layer + 1, j)]['weight'] = 0.3 * node_weights[layer][j] / max_node_weight
             for i in range(n):
                 if weight[j, i] > w_thresh:
                     if weight[j, i] > w_thresh / 2:
@@ -147,9 +147,9 @@ def make_graph(weights, node_weights, column_label, max_edges=100):
     # Label layer 0
     for i, lab in enumerate(column_label):
         g.add_node((0, i))
-        g.node[(0, i)]['label'] = lab
-        g.node[(0, i)]['name'] = lab  # JSON uses this field
-        g.node[(0, i)]['weight'] = 1
+        g._node[(0, i)]['label'] = lab
+        g._node[(0, i)]['name'] = lab  # JSON uses this field
+        g._node[(0, i)]['weight'] = 1
     return g
 
 
@@ -331,15 +331,15 @@ def edge2pdf(g, filename, threshold=0, position=None, labels=None, connected=Tru
                 lstring = u'label="' + thislabel + u'",shape=none'
             elif type(labels) == str:
                 #if g.node[n].has_key('label'):
-                if 'label' in g.node[n]:
-                    thislabel = g.node[n][labels].replace(u'"', u'\\"')
+                if 'label' in g._node[n]:
+                    thislabel = g._node[n][labels].replace(u'"', u'\\"')
                     # combine dupes
                     #llist = thislabel.split(',')
                     #thislabel = ','.join([l for l in set(llist)])
                     thislabel, thiscolor = extract_color(thislabel)
                     lstring = u'label="%s",shape=none,fontcolor="%s"' % (thislabel, thiscolor)
                 else:
-                    weight = g.node[n].get('weight', 0.1)
+                    weight = g._node[n].get('weight', 0.1)
                     if n[0] == 1:
                         lstring = u'shape=circle,margin="0,0",style=filled,fillcolor=black,fontcolor=white,height=%0.2f,label="%d"' % (
                             2 * weight, n[1])
