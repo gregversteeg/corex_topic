@@ -127,6 +127,12 @@ topic_model.fit(X, anchors=[[0, 2], 1], anchor_strength=2)
 
 anchors the features of columns 0 and 2 to the first topic, and feature 1 to the second topic.
 
+Different anchor strengths can be specified for each topic, and further for each word in a topic. The below example uses different anchor strengths for "dog" and "cat" in the first topic, and the same anchor strength for "apple" and "pear" in the second:
+
+```python
+topic_model.fit(X, words=words, anchors=[['dog','cat'], ['apple','pear'], 'building'], anchor_strength=[[2, 2.5], 2, 1.5])
+```
+
 ### Anchoring Strategies
 
 In our TACL paper, we explore several anchoring strategies:
