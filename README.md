@@ -1,6 +1,6 @@
 # Anchored CorEx: Hierarchical Topic Modeling with Minimal Domain Knowledge
 
-**Cor**relation **Ex**planation (CorEx) is a topic model that yields rich topics that are maximally informative about a set of documents. The advantage of using CorEx versus other topic models is that it can be easily run as an unsupervised, semi-supervised, or hierarchical topic model depending on a user's needs. For semi-supervision, CorEx allows a user to integrate their domain knowledge via "anchor word."  This integration is flexible and allows the user to anchor words through creative strategies that promote topic representation, separability, and aspects. More generally, this CorEx implementation is good for clustering any sparse binary data.
+**Cor**relation **Ex**planation (CorEx) is a topic model that yields rich topics that are maximally informative about a set of documents. The advantage of using CorEx versus other topic models is that it can be easily run as an unsupervised, semi-supervised, or hierarchical topic model depending on a user's needs. For semi-supervision, CorEx allows a user to integrate their domain knowledge via "anchor words."  This integration is flexible and allows the user to guide the topic model in the direction of those words. This allows for creative strategies that promote topic representation, separability, and aspects. More generally, this implementation of CorEx is good for clustering any sparse binary data.
 
 If you use this code, please cite the following:
 
