@@ -10,12 +10,6 @@ Representations of High-Dimensional Data." AISTATS, 2015.
 Gallagher et al. "Anchored Correlation Explanation: Topic Modeling with Minimal
 Domain Knowledge." TACL, 2017.
 
-Code below written by:
-Greg Ver Steeg (gregv@isi.edu)
-Ryan J. Gallagher
-David Kale
-Lily Fierro
-
 License: Apache V2
 """
 import warnings
@@ -537,14 +531,32 @@ class Corex(object):
 
     def get_topics(self, n_words=10, topic=None, print_words=True):
         """
-        Return list of lists of tuples. Each list consists of the top words for a topic
-        and each tuple is a pair (word, mutual information). If 'words' was not provided
-        to CorEx, then 'word' will be an integer column index of X
+        Gets the top words for topics. If `words` was not provided to CorEx,
+        then the indices of the top words are returned
 
-        topic_n : integer specifying which topic to get (0-indexed)
-        print_words : boolean, get_topics will attempt to print topics using
-                      provided column labels (through 'words') if possible. Otherwise,
-                      topics will be consist of column indices of X
+        INPUT
+        -----
+        n_words, int
+            The top N words to return for each topic
+        topic, int
+            Which topic to get the top words for (0-indexed). If None, then returns
+            the top words for all topics
+        print_words, bool
+            Whether to return string words or integer indices for the topics
+
+        RETURNS
+        -------
+        topics, list or list of lists
+            Each list is a topic. If only topic is being queried, then only a
+            single, non-nested list. Each topic list contains a series of
+            3-tuples for the top N words. The first entry is either the string
+            or the column integer index of the word, depending on `print_words`
+            and whether `words` is available. The second entry is the mutual
+            information (MI) of the word with the topic. The third entry is
+            the sign of correlation of the word with the topic. If it is
+            positive (1), then the word's presence is informative for the topic.
+            If it is negative (-1), then word's absensce is informative for the
+            topic
         """
         # Determine which topics to iterate over
         if topic is not None:
@@ -567,9 +579,9 @@ class Corex(object):
             inds = inds[np.argsort(-self.alpha[n,inds] * self.mis[n,inds])]
             # Create topic to return
             if print_words is True:
-                topic = [(self.col_index2word[ind], self.sign[n,ind]*self.mis[n,ind]) for ind in inds[:n_words]]
+                topic = [(self.col_index2word[ind], self.mis[n,ind], self.sign[n,ind]) for ind in inds[:n_words]]
             else:
-                topic = [(ind, self.sign[n,ind]*self.mis[n,ind]) for ind in inds[:n_words]]
+                topic = [(ind, self.mis[n,ind], self.sign[n,ind]) for ind in inds[:n_words]]
             # Add topic to list of topics if returning all topics. Otherwise, return topic
             if len(topic_ns) != 1:
                 topics.append(topic)
