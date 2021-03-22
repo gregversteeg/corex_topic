@@ -593,7 +593,7 @@ class Corex(object):
                     word = ind
 
                 if weighted_rank:
-                    mi = self.alpha[n,inds] * self.mis[n,ind]
+                    mi = self.alpha[n,ind] * self.mis[n,ind]
                 else:
                     mi = self.mis[n,ind]
 
